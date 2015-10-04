@@ -5,10 +5,11 @@ module Cards(
   Deck,
   standardDeck,
   shuffleDeck
-  ) 
+  )
        where
 
 import Data.Char (chr)
+import Data.Maybe (Maybe, isJust, fromJust, catMaybes)
 import System.Random
 import System.Random.Shuffle
 
@@ -26,7 +27,7 @@ data Rank = Ace
           | Jack
           | Queen
           | King
-          deriving (Eq, Ord, Bounded, Enum)  
+          deriving (Eq, Ord, Bounded, Enum)
 
 instance Show Rank where
   show Ace = "A"
@@ -52,11 +53,11 @@ rankUnicodeOffset King = (fromEnum King) + 2
 rankUnicodeOffset s = (fromEnum s) + 1
 
 -- suit
-data Suit = Spades 
+data Suit = Spades
             | Hearts
             | Diamonds
             | Clubs
-            deriving (Eq, Ord, Bounded, Enum)  
+            deriving (Eq, Ord, Bounded, Enum)
 
 instance Show Suit where
   show Spades = "♠"
@@ -75,14 +76,14 @@ suitUnicode Diamonds = 0x1F0C0
 suitUnicode Clubs = 0x1F0D0
 
 -- card
-data Card = Card {  
+data Card = Card {
   rank :: Rank,
   suit :: Suit
   }
 
 instance Show Card where
   show (Card {rank = r, suit = s}) = (show r) ++ (show s) ++ " "
---  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']  
+--  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']
 
 type Deck = [Card]
 
@@ -98,3 +99,40 @@ shuffleDeck :: StdGen -> Deck -> Deck
 shuffleDeck gen deck = shuffle' deck (length deck) gen
 
 
+readCards :: String -> Maybe [Card]
+readCards str
+  | allValid = Just (catMaybes cards)
+  | otherwise = Nothing
+  where cards = map readCard $ words str
+        allValid = all isJust cards
+
+readCard :: String -> Maybe Card
+readCard (r:s:[])
+  | (isJust mr) && (isJust ms) = Just (Card (fromJust mr) (fromJust ms))
+  | otherwise = Nothing
+  where mr = readRank r
+        ms = readSuit s
+readCard _ = Nothing
+
+readRank :: Char -> Maybe Rank
+readRank 'A' = Just Ace
+readRank '2' = Just Two
+readRank '3' = Just Three
+readRank '4' = Just Four
+readRank '5' = Just Five
+readRank '6' = Just Six
+readRank '7' = Just Seven
+readRank '8' = Just Eight
+readRank '9' = Just Nine
+readRank 'T' = Just Ten
+readRank 'J' = Just Jack
+readRank 'Q' = Just Queen
+readRank 'K' = Just King
+readRank _ = Nothing
+
+readSuit :: Char -> Maybe Suit
+readSuit 's' = Just Spades
+readSuit 'h' = Just Hearts
+readSuit 'd' = Just Diamonds
+readSuit 'c' = Just Clubs
+readSuit _ = Nothing
