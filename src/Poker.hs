@@ -5,7 +5,7 @@ module Poker
          suited,
          connected,
        
-         PokerRank,
+         PokerRank (..),
          pokerRank,
 
          generateHands,

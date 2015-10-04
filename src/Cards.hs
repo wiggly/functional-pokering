@@ -81,7 +81,8 @@ data Card = Card {
   }
 
 instance Show Card where
-  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']  
+  show (Card {rank = r, suit = s}) = (show r) ++ (show s) ++ " "
+--  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']  
 
 type Deck = [Card]
 
