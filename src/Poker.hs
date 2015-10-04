@@ -1,10 +1,10 @@
-module Poker 
+module Poker
        (
-         HoldEmHand,       
+         HoldEmHand,
          pocketPair,
          suited,
          connected,
-       
+
          PokerRank (..),
          pokerRank,
 
@@ -12,7 +12,13 @@ module Poker
 
          groupRanks,
          countRanks,
-         countSuits
+         countSuits,
+
+         isPair,
+         isTwoPair,
+         isThreeOfAKind,
+         isStraight,
+         isFlush
        )
        where
 
@@ -59,8 +65,8 @@ pokerRank board hand
   | isTwoPair cards = TwoPair
   | isPair cards = Pair
   | otherwise = HighCard
-  where cards = (fst hand) : (snd hand) : board 
-  
+  where cards = (fst hand) : (snd hand) : board
+
 isPair :: [Card] -> Bool
 isPair xs = elem 1 pairCount
   where ps = nChooseK xs 5
@@ -77,11 +83,13 @@ isThreeOfAKind xs = elem 1 tripCount
         tripCount = map countTrips ps
 
 isStraight :: [Card] -> Bool
-isStraight xs = (length legalLengthHands) > 0
-  where ps = nChooseK orderedRanks 5
-        orderedRanks = sort $ map (fromEnum . rank) xs
-        groupedRanks = map group ps
-        legalLengthHands = filter (\x -> (length x) == 5) groupedRanks
+isStraight xs = if (length uniqueOrderedRanks) > 4
+                then not . null $ legalIntervalHands
+                  else False
+  where legalIntervalHands = filter isLegalInterval combos
+        combos = nChooseK uniqueOrderedRanks 5
+        uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) xs
+        isLegalInterval cards = ((last cards) - (head cards)) == 4
 
 isFlush :: [Card] -> Bool
 isFlush xs = elem 1 suitCount
@@ -112,7 +120,7 @@ generateHands deck count = (hands, remainder)
   where hands = map createHand (take count $ chunkList 2 deck)
         remainder = drop (count * 2) deck
         createHand (x:y:[]) = (x, y)
-  
+
 countMultipleRanks :: Int -> [Card] -> Int
 countMultipleRanks n hand = length multiples
   where groupedRanks = countRanks . groupRanks $ hand
