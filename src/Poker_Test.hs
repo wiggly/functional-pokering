@@ -1,187 +1,117 @@
 module Poker_Test () where
 
-import Poker ( PokerRank(..), isPair, isTwoPair, isThreeOfAKind, isStraight, pokerRank )
+import Poker (
+  HoldEmHand(..),
+  PokerRank(..),
+  isPair, isTwoPair, isThreeOfAKind, isStraight, isFlush, isFullHouse, isFourOfAKind, isStraightFlush,
+  pokerRank, readHand
+  )
+
 import Test.HUnit
 import Cards
+import Data.Maybe (fromJust)
 
-testIsPair_1 = TestCase $ assertBool "A set of cards containing a pair should be true"
-               ( isPair [
-                    Card King Spades,
-                    Card Queen Spades,
-                    Card Ten Spades,
-                    Card Nine Spades,
-                    Card Eight Spades,
-                    Card Seven Spades,
-                    Card King Hearts
-                    ] )
+testCards :: String -> [Card]
+testCards str = fromJust $ readCards str
 
-testIsPair_2 = TestCase $ assertBool "A set of cards containing no pair should not be true"
-               ( not $ isPair [
-                    Card King Spades,
-                    Card Queen Spades,
-                    Card Ten Spades,
-                    Card Nine Spades,
-                    Card Eight Spades,
-                    Card Seven Spades,
-                    Card Six Spades
-                    ] )
+testHand :: String -> HoldEmHand
+testHand str = fromJust $ readHand str
 
-pairTests = TestList [ testIsPair_1, testIsPair_2 ]
+assertTrue :: String -> Bool -> Assertion
+assertTrue s b = assertBool s b
 
-testIsTwoPair_1 = TestCase $ assertBool "A set of cards containing two pair should be true"
-                  ( isTwoPair [
-                       Card King Spades,
-                       Card Queen Spades,
-                       Card Ten Spades,
-                       Card Nine Spades,
-                       Card Eight Spades,
-                       Card King Hearts,
-                       Card Queen Hearts
-                       ] )
+assertFalse :: String -> Bool -> Assertion
+assertFalse s b = assertBool s (not b)
 
-testIsTwoPair_2 = TestCase $ assertBool "A set of cards containing one pair should not be true"
-                  ( not $ isTwoPair [
-                       Card King Spades,
-                       Card Queen Spades,
-                       Card Ten Spades,
-                       Card Nine Spades,
-                       Card Eight Spades,
-                       Card Seven Spades,
-                       Card King Hearts
-                       ] )
-
-testIsTwoPair_3 = TestCase $ assertBool "A set of cards containing no pair should not be true"
-                  ( not $ isTwoPair [
-                       Card King Spades,
-                       Card Queen Spades,
-                       Card Ten Spades,
-                       Card Nine Spades,
-                       Card Eight Spades,
-                       Card Seven Spades,
-                       Card Six Spades
-                       ] )
-
-twoPairTests = TestList [ testIsTwoPair_1, testIsTwoPair_2, testIsTwoPair_3 ]
-
-testIsThreeOfAKind_1 = TestCase $ assertBool "A set of cards containin three of a kind should be true"
-                       ( isThreeOfAKind [
-                            Card King Spades,
-                            Card Queen Spades,
-                            Card Ten Spades,
-                            Card Nine Spades,
-                            Card Eight Spades,
-                            Card King Hearts,
-                            Card King Diamonds
-                            ] )
-
-testIsThreeOfAKind_2 = TestCase $ assertBool "A set of cards not containing three of a kind should be false"
-                       ( not $ isTwoPair [
-                            Card King Spades,
-                            Card Queen Spades,
-                            Card Ten Spades,
-                            Card Nine Spades,
-                            Card Eight Spades,
-                            Card Seven Spades,
-                            Card King Hearts
-                            ] )
-
-threeOfAKindTests = TestList [ testIsThreeOfAKind_1, testIsThreeOfAKind_2 ]
-
-testIsStraight_1 = TestCase $ assertBool "A set of cards containing ranks A, 2, 3, 4, 5 should be true"
-                   ( isStraight [
-                        Card Five Spades,
-                        Card Four Hearts,
-                        Card Three Diamonds,
-                        Card Two Clubs,
-                        Card Ace Spades,
-                        Card King Spades,
-                        Card King Hearts
-                        ] )
-
-testIsStraight_2 = TestCase $ assertBool "A set of cards containing ranks 2, 3, 4, 5, 6 should be true"
-                   ( isStraight [
-                        Card Six Clubs,
-                        Card Five Spades,
-                        Card Four Hearts,
-                        Card Three Diamonds,
-                        Card Two Clubs,
-                        Card King Spades,
-                        Card King Hearts
-                        ] )
-
-testIsStraight_3 = TestCase $ assertBool "A set of cards containing ranks 3, 4, 5, 6, 7 should be true"
-                   ( isStraight [
-                        Card Seven Diamonds,
-                        Card Six Clubs,
-                        Card Five Spades,
-                        Card Four Hearts,
-                        Card Three Diamonds,
-                        Card King Spades,
-                        Card King Hearts
-                        ] )
-
-testIsStraight_4 = TestCase $ assertBool "A set of cards containing ranks 9, T, J, Q, K should be true"
-                   ( isStraight [
-                        Card King Hearts,
-                        Card Queen Diamonds,
-                        Card Jack Clubs,
-                        Card Ten Spades,
-                        Card Nine Hearts,
-                        Card Two Spades,
-                        Card Two Hearts
-                        ] )
-                   
-testIsStraight_5 = TestCase $ assertBool "A set of cards containing ranks T, J, Q, K, A should be true"
-                   ( isStraight [
-                        Card Ace Spades,
-                        Card King Hearts,
-                        Card Queen Diamonds,
-                        Card Jack Clubs,
-                        Card Ten Spades,
-                        Card Two Spades,
-                        Card Two Hearts
-                        ] )
-
-testIsStraight_6 = TestCase $ assertBool "A set of cards containing ranks A, 4, 5, 6, 7, Q, K should be false"
-               ( not $ isStraight [
-                    Card Ace Spades,
-                    Card King Hearts,
-                    Card Queen Diamonds,
-                    Card Six Clubs,
-                    Card Four Spades,
-                    Card Five Spades,
-                    Card Ace Hearts
-                    ] )
-
-testIsStraight_7 = TestCase $ assertBool "A set of cards containing ranks 8d, Qd, 8c, Jc, 3d, Ac, Js should be false"
-               ( not $ isStraight [
-                    Card Eight Diamonds,
-                    Card Queen Diamonds,
-                    Card Eight Clubs,
-                    Card Jack Clubs,
-                    Card Three Diamonds,
-                    Card Ace Clubs,
-                    Card Jack Spades
-                    ] )
+handTestCase :: String -> ([Card] -> Bool) -> (String -> Bool -> Assertion) -> String -> Test
+handTestCase cards pred assertion message = TestCase $ assertion fullMessage (pred $ testCards cards)
+  where fullMessage = cards ++ " is " ++ message
 
 
-straightTests = TestList [ testIsStraight_1, testIsStraight_2, testIsStraight_3, testIsStraight_4, testIsStraight_5 ]
+pairTests = TestList [
+  handTestCase "Ks Kh 2c 3d 8s" isPair assertTrue "Pair",
+  handTestCase "Ks Qh 2c 3d 8s" isPair assertFalse "NOT Pair"
+  ]
 
-flushTests = TestList []
 
-testPokerRank_1 = TestCase $ assertEqual "Board: 8d, Qd, 8c, Jc, 3d with Hand: Ac, Js should be TwoPair"
+twoPairTests = TestList [
+  handTestCase "Ks Kh Qs Qh 3d" isTwoPair assertTrue "Two Pair",
+  handTestCase "Ks Kh 2c 3d 8s" isTwoPair assertFalse "NOT Two Pair",
+  handTestCase "Ks Qh 2c 3d 8s" isTwoPair assertFalse "NOT Two Pair"
+  ]
+
+
+threeOfAKindTests = TestList [
+  handTestCase "Ks Kh Kd 2c 5s" isThreeOfAKind assertTrue "Three of a Kind",
+  handTestCase "Ks Kh Qd 2c 5s" isThreeOfAKind assertFalse "NOT Three of a Kind"
+  ]
+
+
+straightTests = TestList [
+  handTestCase "As 2h 3d 4c 5s" isStraight assertTrue "Straight",
+  handTestCase "2h 3d 4c 5s 6h" isStraight assertTrue "Straight",
+  handTestCase "3d 4c 5s 6h 7d" isStraight assertTrue "Straight",
+  handTestCase "9s Th Jd Qc Ks" isStraight assertTrue "Straight",
+  handTestCase "Th Jd Qc Ks Ah" isStraight assertTrue "Straight",
+  handTestCase "As 2s 3d 4c 6s" isStraight assertFalse "NOT Straight"
+  ]
+
+
+flushTests = TestList [
+  handTestCase "As 2s 3s 4s 6s" isFlush assertTrue "Flush",
+  handTestCase "As 2s 3s 4s 5s" isFlush assertTrue "Flush",
+  handTestCase "Js 8s 2s Ks 3s" isFlush assertTrue "Flush",
+  handTestCase "As 2s 3s 4c 6s" isFlush assertFalse "NOT Flush",
+  handTestCase "Ac 2h 3d 4c 6s" isFlush assertFalse "NOT Flush"
+  ]
+
+
+fullHouseTests = TestList [
+  handTestCase "As Ah Ad Ks Kh" isFullHouse assertTrue "Full House",
+  handTestCase "Ks As Kh Ah Ad" isFullHouse assertTrue "Full House",
+  handTestCase "2s 2h 2d 3s 3h" isFullHouse assertTrue "Full House",
+  handTestCase "2s 2h 2d As Kh" isFullHouse assertFalse "NOT Full House",
+  handTestCase "2s 4h 2d 3s 3h" isFullHouse assertFalse "NOT Full House",
+  handTestCase "2s 2h 2d 9s 3h" isFullHouse assertFalse "NOT Full House"
+  ]
+
+fourOfAKindTests = TestList [
+  handTestCase "As Ah Ad Ac Ks" isFourOfAKind assertTrue "Four of a Kind",
+  handTestCase "As Ah Ad Ac 2s" isFourOfAKind assertTrue "Four of a Kind",
+  handTestCase "2s 2h 2d 2c Ks" isFourOfAKind assertTrue "Four of a Kind",
+  handTestCase "2s Kh 2d 2c 2h" isFourOfAKind assertTrue "Four of a Kind",
+  handTestCase "As 2h Ad Ac Ks" isFourOfAKind assertFalse "NOT Four of a Kind",
+  handTestCase "As Ah Qd Ac Ks" isFourOfAKind assertFalse "NOT Four of a Kind",
+  handTestCase "9s Ah Ad Ac Ks" isFourOfAKind assertFalse "NOT Four of a Kind"
+  ]
+
+straightFlushTests = TestList [
+  handTestCase "As 2s 3s 4s 5s" isStraightFlush assertTrue "Straight Flush",
+  handTestCase "2s 3s 4s 5s 6s" isStraightFlush assertTrue "Straight Flush",
+  handTestCase "As 4s 5s 2s 3s" isStraightFlush assertTrue "Straight Flush",
+  handTestCase "Ts Js Qs Ks As" isStraightFlush assertTrue "Straight Flush",
+  handTestCase "Ts Js 9s Qs Ks" isStraightFlush assertTrue "Straight Flush",
+  handTestCase "Ac 2s 3s 4s 5s" isStraightFlush assertFalse "NOT Straight Flush",
+  handTestCase "As 6s 3s 4s 5s" isStraightFlush assertFalse "NOT Straight Flush",
+  handTestCase "As 2s Qs 4s 5s" isStraightFlush assertFalse "NOT Straight Flush",
+  handTestCase "As 2s 3s 4s 4c" isStraightFlush assertFalse "NOT Straight Flush"
+  ]
+
+testPokerRank_1 = TestCase $ assertEqual "Board: 8d Qd 8c Jc 3d with Hand: Ac, Js should be TwoPair"
                   TwoPair
-                  ( pokerRank [
-                       Card Eight Diamonds,
-                       Card Queen Diamonds,
-                       Card Eight Clubs,
-                       Card Jack Clubs,
-                       Card Three Diamonds
-                       ]
-                    (Card Ace Clubs, Card Jack Spades) )
+                  ( pokerRank (testCards "8d Qd 8c Jc 3d") (testHand "Ac Js") )
 
 rankTests = TestList [ testPokerRank_1 ]
 
-allTests = TestList [ pairTests, twoPairTests, threeOfAKindTests, straightTests, flushTests, rankTests ]
+allTests = TestList [
+  pairTests,
+  twoPairTests,
+  threeOfAKindTests,
+  straightTests,
+  flushTests,
+  fullHouseTests,
+  fourOfAKindTests,
+  straightFlushTests,
+  rankTests ]
 
 main = runTestTT allTests

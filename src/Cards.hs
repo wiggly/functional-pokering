@@ -4,7 +4,10 @@ module Cards(
   Card(..),
   Deck,
   standardDeck,
-  shuffleDeck
+  shuffleDeck,
+
+  readCards,
+  readCard
   )
        where
 

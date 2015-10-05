@@ -18,13 +18,19 @@ module Poker
          isTwoPair,
          isThreeOfAKind,
          isStraight,
-         isFlush
+         isFlush,
+         isFullHouse,
+         isFourOfAKind,
+         isStraightFlush,
+
+         readHand
        )
        where
 
 import Cards
 import Wiggly
 import Data.List
+import Data.Maybe (fromJust)
 
 type HoldEmHand = (Card,Card)
 type OmahaHand = (Card,Card,Card,Card)
@@ -146,3 +152,12 @@ countSuits xs = length (groupSuits xs)
 
 groupSuits :: [Card] -> [[Suit]]
 groupSuits xs = group . sort $ (map suit xs)
+
+readHand :: String -> Maybe HoldEmHand
+readHand str
+  | (numCards == 2) = Just (head $ fromJust cards, last $ fromJust cards)
+  | otherwise = Nothing
+    where cards = readCards str
+          numCards = case cards of
+            (Just xs) -> length xs
+            Nothing -> 0
