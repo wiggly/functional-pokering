@@ -1,3 +1,5 @@
+-- -*- mode: haskell; -*-
+
 module Cards(
   Rank(..),
   Suit(..),

@@ -1,3 +1,5 @@
+-- -*- mode: haskell; -*-
+
 module Poker
        (
          HoldEmHand,
@@ -62,63 +64,54 @@ connected (x,y) = 1 == abs ((fromEnum (rank x)) - (fromEnum (rank y)))
 -- take a board to choose from, a hand and return the best rank made by that hand on the board
 pokerRank :: [Card] -> HoldEmHand -> PokerRank
 pokerRank board hand
-  | isStraightFlush cards = StraightFlush
-  | isFourOfAKind cards = FourOfAKind
-  | isFullHouse cards = FullHouse
-  | isFlush cards = Flush
-  | isStraight cards = Straight
-  | isThreeOfAKind cards = ThreeOfAKind
-  | isTwoPair cards = TwoPair
-  | isPair cards = Pair
+  | or $ map isStraightFlush hands = StraightFlush
+  | or $ map isFourOfAKind hands = FourOfAKind
+  | or $ map isFullHouse hands = FullHouse
+  | or $ map isFlush hands = Flush
+  | or $ map isStraight hands = Straight
+  | or $ map isThreeOfAKind hands = ThreeOfAKind
+  | or $ map isTwoPair hands = TwoPair
+  | or $ map isPair hands = Pair
   | otherwise = HighCard
   where cards = (fst hand) : (snd hand) : board
+        hands = nChooseK cards 5
 
 isPair :: [Card] -> Bool
-isPair xs = elem 1 pairCount
-  where ps = nChooseK xs 5
-        pairCount = map countPairs ps
+isPair xs = 1 == countPairs xs
 
 isTwoPair :: [Card] -> Bool
-isTwoPair xs = elem 2 pairCount
-  where ps = nChooseK xs 5
-        pairCount = map countPairs ps
+isTwoPair xs = 2 == countPairs xs
 
 isThreeOfAKind :: [Card] -> Bool
-isThreeOfAKind xs = elem 1 tripCount
-  where ps = nChooseK xs 5
-        tripCount = map countTrips ps
+isThreeOfAKind xs = 1 == countTrips xs
 
+--
+-- this is a bit interesting. due to the fact that Ace enum value is zero we can't check that 
+-- the interval between the first and last rank is exactly 4 so we instead have a check to see that
+-- an Ace is present and that the sum of the enum values is exactly what is required by the other 
+-- broadway cards
+--
 isStraight :: [Card] -> Bool
-isStraight xs = if (length uniqueOrderedRanks) > 4
-                then not . null $ legalIntervalHands
-                  else False
-  where legalIntervalHands = filter isLegalInterval combos
-        combos = nChooseK uniqueOrderedRanks 5
-        uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) xs
-        isLegalInterval cards = ((last cards) - (head cards)) == 4
+isStraight xs
+  | (5 > length uniqueOrderedRanks) = False
+  | 0 == head uniqueOrderedRanks && 42 == sum uniqueOrderedRanks = True
+  | otherwise = isLegalInterval uniqueOrderedRanks
+  where uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) xs
+        isLegalInterval ranks = ((last ranks) - (head ranks)) == 4
 
 isFlush :: [Card] -> Bool
-isFlush xs = elem 1 suitCount
-  where ps = nChooseK xs 5
-        suitCount = map countSuits ps
+isFlush xs = 1 == countSuits xs
 
 isFullHouse :: [Card] -> Bool
-isFullHouse xs = elem (1,1) bothCount
-  where ps = nChooseK xs 5
-        tripCount = map countTrips ps
-        pairCount = map countPairs ps
-        bothCount = zip tripCount pairCount
+isFullHouse xs = hasPair && hasTrips
+  where hasPair = 1 == countPairs xs
+        hasTrips = 1 == countTrips xs
 
 isFourOfAKind :: [Card] -> Bool
-isFourOfAKind xs = elem 4 quadCount
-  where ps = nChooseK xs 5
-        quadCount = map countQuads ps
+isFourOfAKind xs = 1 == countQuads xs
 
 isStraightFlush :: [Card] -> Bool
-isStraightFlush _ = False
-
-
-
+isStraightFlush xs = isStraight xs && isFlush xs
 
 -- generate some hands, return them and the remainder of the deck
 generateHands :: Deck -> Int -> ([HoldEmHand],Deck)

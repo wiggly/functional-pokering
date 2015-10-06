@@ -1,3 +1,5 @@
+-- -*- mode: haskell; -*-
+
 module Wiggly
        (
          nChooseK,

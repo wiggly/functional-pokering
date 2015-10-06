@@ -1,3 +1,5 @@
+-- -*- mode: haskell; -*-
+
 module Poker_Test () where
 
 import Poker (
@@ -27,12 +29,10 @@ handTestCase :: String -> ([Card] -> Bool) -> (String -> Bool -> Assertion) -> S
 handTestCase cards pred assertion message = TestCase $ assertion fullMessage (pred $ testCards cards)
   where fullMessage = cards ++ " is " ++ message
 
-
 pairTests = TestList [
   handTestCase "Ks Kh 2c 3d 8s" isPair assertTrue "Pair",
   handTestCase "Ks Qh 2c 3d 8s" isPair assertFalse "NOT Pair"
   ]
-
 
 twoPairTests = TestList [
   handTestCase "Ks Kh Qs Qh 3d" isTwoPair assertTrue "Two Pair",
@@ -40,12 +40,10 @@ twoPairTests = TestList [
   handTestCase "Ks Qh 2c 3d 8s" isTwoPair assertFalse "NOT Two Pair"
   ]
 
-
 threeOfAKindTests = TestList [
   handTestCase "Ks Kh Kd 2c 5s" isThreeOfAKind assertTrue "Three of a Kind",
   handTestCase "Ks Kh Qd 2c 5s" isThreeOfAKind assertFalse "NOT Three of a Kind"
   ]
-
 
 straightTests = TestList [
   handTestCase "As 2h 3d 4c 5s" isStraight assertTrue "Straight",
@@ -56,7 +54,6 @@ straightTests = TestList [
   handTestCase "As 2s 3d 4c 6s" isStraight assertFalse "NOT Straight"
   ]
 
-
 flushTests = TestList [
   handTestCase "As 2s 3s 4s 6s" isFlush assertTrue "Flush",
   handTestCase "As 2s 3s 4s 5s" isFlush assertTrue "Flush",
@@ -64,7 +61,6 @@ flushTests = TestList [
   handTestCase "As 2s 3s 4c 6s" isFlush assertFalse "NOT Flush",
   handTestCase "Ac 2h 3d 4c 6s" isFlush assertFalse "NOT Flush"
   ]
-
 
 fullHouseTests = TestList [
   handTestCase "As Ah Ad Ks Kh" isFullHouse assertTrue "Full House",

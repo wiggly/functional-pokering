@@ -1,3 +1,5 @@
+-- -*- mode: haskell; -*-
+
 module Main (main) where
 
 import Cards
