@@ -25,14 +25,25 @@ module Poker
          isFourOfAKind,
          isStraightFlush,
 
-         readHand
+         readHoldEmHand,
+
+         ShowdownTally (..),
+         pokerEquity,
+         blankTally,
+         addTally,
+
+         newWin,
+         newTie,
+         newLoss
+
        )
        where
 
 import Cards
 import Wiggly
 import Data.List
-import Data.Maybe (fromJust)
+import Data.Maybe (fromJust, isJust)
+import Data.Ratio
 
 type HoldEmHand = (Card,Card)
 type OmahaHand = (Card,Card,Card,Card)
@@ -86,9 +97,9 @@ isThreeOfAKind :: [Card] -> Bool
 isThreeOfAKind xs = 1 == countTrips xs
 
 --
--- this is a bit interesting. due to the fact that Ace enum value is zero we can't check that 
+-- this is a bit interesting. due to the fact that Ace enum value is zero we can't check that
 -- the interval between the first and last rank is exactly 4 so we instead have a check to see that
--- an Ace is present and that the sum of the enum values is exactly what is required by the other 
+-- an Ace is present and that the sum of the enum values is exactly what is required by the other
 -- broadway cards
 --
 isStraight :: [Card] -> Bool
@@ -146,11 +157,58 @@ countSuits xs = length (groupSuits xs)
 groupSuits :: [Card] -> [[Suit]]
 groupSuits xs = group . sort $ (map suit xs)
 
-readHand :: String -> Maybe HoldEmHand
-readHand str
-  | (numCards == 2) = Just (head $ fromJust cards, last $ fromJust cards)
+readHoldEmHand :: String -> Maybe HoldEmHand
+readHoldEmHand str
+  | length str /= 4 = Nothing
+  | isJust c1 && isJust c2 = Just (fromJust c1, fromJust c2)
   | otherwise = Nothing
-    where cards = readCards str
-          numCards = case cards of
-            (Just xs) -> length xs
-            Nothing -> 0
+    where c1 = readCard $ take 2 str
+          c2 = readCard $ drop 2 str
+
+
+--calculateEquity :: [HoldEmHand] -> [(HoldEmHand,Equity)]
+--calculateEquity hands = map (\x -> (x,(1 % 2))) hands
+
+
+data ShowdownTally = ShowdownTally { win :: Integer, tie :: Integer, loss :: Integer }
+                   deriving (Eq, Show)
+
+instance Ord ShowdownTally where
+  compare a b = compare ((win a) + (tie a) - (loss a)) ((win b) + (tie b) - (loss b))
+
+addTally :: ShowdownTally -> ShowdownTally -> ShowdownTally
+addTally x y = ShowdownTally { win = (win x) + (win y), loss = (loss x) + (loss y), tie = (tie x) + (tie y) }
+
+blankTally :: ShowdownTally
+blankTally = ShowdownTally { win = 0, tie = 0, loss = 0 }
+
+newWin :: ShowdownTally
+newWin = ShowdownTally { win = 1, tie = 0, loss = 0 }
+
+newTie :: ShowdownTally
+newTie = ShowdownTally { win = 0, tie = 1, loss = 0 }
+
+newLoss :: ShowdownTally
+newLoss = ShowdownTally { win = 0, tie = 0, loss = 1 }
+
+
+
+
+
+
+-- hand/rank/
+pokerEquity :: [Card] -> [HoldEmHand] -> [(HoldEmHand,ShowdownTally)]
+pokerEquity deck hs = if outrightWinner
+                      then map (tallyHand winnerTally) ranked
+                      else map (tallyHand tierTally) ranked
+  where ranked = map (\x -> (x,ranker x)) hs
+        ranker = pokerRank deck
+        winningRank = maximum $ map snd ranked
+        outrightWinner = 1 == (length $ filter (\x -> x == winningRank) $ map snd ranked)
+        winnerTally h = if h == winningRank
+                        then newWin
+                        else newLoss
+        tierTally h = if h == winningRank
+                      then newTie
+                      else newLoss
+        tallyHand tf (hand,rank) = (hand,(tf rank))

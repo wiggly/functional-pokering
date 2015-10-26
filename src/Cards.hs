@@ -84,7 +84,7 @@ suitUnicode Clubs = 0x1F0D0
 data Card = Card {
   rank :: Rank,
   suit :: Suit
-  }
+  } deriving (Eq)
 
 instance Show Card where
   show (Card {rank = r, suit = s}) = (show r) ++ (show s) ++ " "
@@ -103,7 +103,7 @@ standardDeck = createDeck ranks suits
 shuffleDeck :: StdGen -> Deck -> Deck
 shuffleDeck gen deck = shuffle' deck (length deck) gen
 
-
+-- space-separated cards to an array of possible cards
 readCards :: String -> Maybe [Card]
 readCards str
   | allValid = Just (catMaybes cards)
@@ -111,6 +111,7 @@ readCards str
   where cards = map readCard $ words str
         allValid = all isJust cards
 
+-- a string representing a single card
 readCard :: String -> Maybe Card
 readCard (r:s:[])
   | (isJust mr) && (isJust ms) = Just (Card (fromJust mr) (fromJust ms))

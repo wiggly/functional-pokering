@@ -6,7 +6,8 @@ import Poker (
   HoldEmHand(..),
   PokerRank(..),
   isPair, isTwoPair, isThreeOfAKind, isStraight, isFlush, isFullHouse, isFourOfAKind, isStraightFlush,
-  pokerRank, readHand
+  pokerEquity, newWin, newTie, newLoss,
+  pokerRank, readHoldEmHand
   )
 
 import Test.HUnit
@@ -17,7 +18,7 @@ testCards :: String -> [Card]
 testCards str = fromJust $ readCards str
 
 testHand :: String -> HoldEmHand
-testHand str = fromJust $ readHand str
+testHand str = fromJust $ readHoldEmHand str
 
 assertTrue :: String -> Bool -> Assertion
 assertTrue s b = assertBool s b
@@ -95,9 +96,20 @@ straightFlushTests = TestList [
 
 testPokerRank_1 = TestCase $ assertEqual "Board: 8d Qd 8c Jc 3d with Hand: Ac, Js should be TwoPair"
                   TwoPair
-                  ( pokerRank (testCards "8d Qd 8c Jc 3d") (testHand "Ac Js") )
+                  ( pokerRank (testCards "8d Qd 8c Jc 3d") (testHand "AcJs") )
 
 rankTests = TestList [ testPokerRank_1 ]
+
+
+equityTest_1 = TestCase $ assertEqual "AsKs vs 7d2c on 9c 3d 8s 4h Jd"
+                  [((testHand "AsKs"),newWin),((testHand "7d2c"),newLoss)]
+                  ( pokerEquity (testCards "9c 3d 8s 4h Jd") [(testHand "AsKs"),(testHand "7d2c")] )
+
+
+
+equityTests = TestList [ equityTest_1 ]
+
+
 
 allTests = TestList [
   pairTests,
@@ -108,6 +120,7 @@ allTests = TestList [
   fullHouseTests,
   fourOfAKindTests,
   straightFlushTests,
-  rankTests ]
+  rankTests,
+  equityTests ]
 
 main = runTestTT allTests
