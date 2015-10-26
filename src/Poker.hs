@@ -75,17 +75,16 @@ connected (x,y) = 1 == abs ((fromEnum (rank x)) - (fromEnum (rank y)))
 -- take a board to choose from, a hand and return the best rank made by that hand on the board
 pokerRank :: [Card] -> HoldEmHand -> PokerRank
 pokerRank board hand
-  | or $ map isStraightFlush hands = StraightFlush
-  | or $ map isFourOfAKind hands = FourOfAKind
-  | or $ map isFullHouse hands = FullHouse
-  | or $ map isFlush hands = Flush
-  | or $ map isStraight hands = Straight
-  | or $ map isThreeOfAKind hands = ThreeOfAKind
-  | or $ map isTwoPair hands = TwoPair
-  | or $ map isPair hands = Pair
+  | isStraightFlush cards = StraightFlush
+  | isFourOfAKind cards = FourOfAKind
+  | isFullHouse cards = FullHouse
+  | isFlush cards = Flush
+  | isStraight cards = Straight
+  | isThreeOfAKind cards = ThreeOfAKind
+  | isTwoPair cards = TwoPair
+  | isPair cards = Pair
   | otherwise = HighCard
   where cards = (fst hand) : (snd hand) : board
-        hands = nChooseK cards 5
 
 isPair :: [Card] -> Bool
 isPair xs = 1 == countPairs xs
@@ -103,15 +102,17 @@ isThreeOfAKind xs = 1 == countTrips xs
 -- broadway cards
 --
 isStraight :: [Card] -> Bool
-isStraight xs
-  | (5 > length uniqueOrderedRanks) = False
-  | 0 == head uniqueOrderedRanks && 42 == sum uniqueOrderedRanks = True
-  | otherwise = isLegalInterval uniqueOrderedRanks
+isStraight xs = or $ map isLegalInterval possibleHands
   where uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) xs
-        isLegalInterval ranks = ((last ranks) - (head ranks)) == 4
+        possibleHands = nChooseK uniqueOrderedRanks 5
+        isLegalInterval ranks
+          | 0 == (head ranks) = (((last ranks) - (head ranks)) == 4) || (42 == (sum ranks))
+          | otherwise = ((last ranks) - (head ranks)) == 4
 
 isFlush :: [Card] -> Bool
-isFlush xs = 1 == countSuits xs
+isFlush xs = 5 `elem` suitCounts
+  where suits = groupSuits xs
+        suitCounts = map length suits
 
 isFullHouse :: [Card] -> Bool
 isFullHouse xs = hasPair && hasTrips
