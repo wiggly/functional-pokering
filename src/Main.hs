@@ -179,9 +179,8 @@ generateBoards rnd count deck = unfoldr go (count,rnd,deck)
         thisRnd x = fst $ split x
         nextRnd x = snd $ split x
 
-evaluateHands :: Integer -> [HoleCards] -> IO ()
-evaluateHands samples hands = do
-  rnd <- getStdGen
+evaluateHands :: StdGen -> Integer -> [HoleCards] -> IO ()
+evaluateHands rnd samples hands = do
   mapM_ putHandLn $ hands
   let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
       deck = filter (\x -> not $ elem x usedCards) standardDeck
@@ -202,11 +201,12 @@ evaluateHands samples hands = do
 cmdLineEvalMain :: IO ()
 cmdLineEvalMain = do
   (seed:samplesStr:rest) <- getArgs
-  let strCards = rest
+  let rnd = mkStdGen $ (read seed :: Int)
+      strCards = rest
       hands = map readHoleCards strCards
       samples = read samplesStr :: Integer
   if all isJust hands
-    then evaluateHands samples $ catMaybes hands
+    then evaluateHands rnd samples $ catMaybes hands
     else putStrLn $ "cannot parse hands: " ++ (unwords strCards)
 
 testMain :: IO ()

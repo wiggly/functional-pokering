@@ -17,3 +17,18 @@ This collection of libraries/tools is in a domain I understand that provides pro
  * Hold Em hands can be created and ranked (mostly)
  * Hold Em hand shape can be determined
 
+# Build
+
+Package uses cabal, so the folliwng will build the `fp` program
+
+    cabal configure
+    cabal build
+
+# Usage
+
+The program currently takes input from the command line string. Requires a random seed, number of iterations to perform and Hole Cards to evaluate against one another. e.g.;
+
+    bash$ ./dist/build/fp/fp 123456 5000 AdJd Ac3c
+
+Evaluates AhJh vs Ac3c over 5,000 runs using the random seed 123456
+
