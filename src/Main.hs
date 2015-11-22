@@ -16,6 +16,9 @@ import Data.Maybe
 import Wiggly (chunkList)
 import Control.Applicative
 import Data.Ratio
+import Numeric
+
+formatFloatN floatNum numOfDecimals = showFFloat (Just numOfDecimals) floatNum ""
 
 -- chunk functions
 chunkCard :: Card -> Chunk String
@@ -28,22 +31,22 @@ chunkBoard :: [Card] -> [Chunk String]
 chunkBoard board = (chunk "Board: ") : cards
   where cards = chunkCards " " board
 
-chunkHand :: HoldEmHand -> [Chunk String]
-chunkHand h@(c1,c2) = [ (chunk "Hand:"),
-                sep,
-                (chunkCard c1),
-                sep,
-                (chunkCard c2),
-                sep,
-                (chunk (handShape h))
-              ]
+chunkHoleCards :: HoleCards -> [Chunk String]
+chunkHoleCards h@(c1,c2) = [ (chunk "Hole Cards: "),
+                             sep,
+                             (chunkCard c1),
+                             sep,
+                             (chunkCard c2),
+                             sep,
+                             (chunk (handShape h))
+                           ]
   where sep = chunk " "
 
 chunkHandRank :: PokerRank -> [Chunk String]
 chunkHandRank r = [chunk (show r)]
 
-chunkRankedHand :: (HoldEmHand,PokerRank) -> [Chunk String]
-chunkRankedHand (h,r) = chunkHand h ++ [sep] ++ chunkHandRank r
+chunkRankedHand :: (HoleCards,PokerRank) -> [Chunk String]
+chunkRankedHand (h,r) = chunkHoleCards h ++ [sep] ++ chunkHandRank r
   where sep = chunk " "
 
 
@@ -51,7 +54,7 @@ chunkRankedHand (h,r) = chunkHand h ++ [sep] ++ chunkHandRank r
 putChunks :: [Chunk String] -> IO ()
 putChunks = mapM_ BS.putStr . chunksToByteStrings toByteStringsColors256
 
-putTable :: [Card] -> [(HoldEmHand,PokerRank)] -> IO ()
+putTable :: [Card] -> [(HoleCards,PokerRank)] -> IO ()
 putTable board hands = putChunks $ title ++ boardChunks ++ handChunks
   where boardChunks = chunkBoard board ++ newline
         handChunks = concat $ map (\x -> (chunkRankedHand x) ++ newline ) hands
@@ -68,36 +71,38 @@ putCardLn x = do putCard x
 putCards :: [Card] -> IO ()
 putCards xs = putChunks $ map chunkCard xs
 
-putHand :: HoldEmHand -> IO ()
-putHand hand = putChunks $ chunkHand hand
+putHand :: HoleCards -> IO ()
+putHand hand = putChunks $ chunkHoleCards hand
 
-putHandLn :: HoldEmHand -> IO ()
+putHandLn :: HoleCards -> IO ()
 putHandLn hand = do putHand hand
                     putStrLn ""
 
-putEquity :: (HoldEmHand,ShowdownTally) -> IO ()
+putEquity :: (HoleCards,ShowdownTally) -> IO ()
 putEquity (h,t) = do putHand h
-                     putStrLn $ "equity: " ++ show e ++ "%"
-  where e = 100 * (fromRational (tallyEquityPercentage t))
+                     putStrLn $ " equity - win: " ++ we ++ "% - tie: " ++ te ++ "%"
+  where we = formatFloatN (100 * (fromRational ( (win t) % total ))) 2
+        te = formatFloatN (100 * (fromRational ( (tie t) % total ))) 2
+        total = (win t) + (tie t) + (loss t)
 
-putTally :: (HoldEmHand,ShowdownTally) -> IO ()
+putTally :: (HoleCards,ShowdownTally) -> IO ()
 putTally (h,t) = do putHand h
-                    putStrLn $ "tally: " ++ (show t)
+                    putStrLn $ " tally: " ++ (show t)
 
 -- original unadorned output functions
 showBoard :: [Card] -> String
 showBoard xs = "Board: " ++ (intercalate " " $ map show xs)
 
-showHand :: HoldEmHand -> String
+showHand :: HoleCards -> String
 showHand x = "Hand: " ++ (show (fst x)) ++ " " ++ (show (snd x)) ++ (handShape x)
 
-showRankedHand :: (HoldEmHand,PokerRank) -> String
+showRankedHand :: (HoleCards,PokerRank) -> String
 showRankedHand (hand,rank) = (showHand hand) ++ " - rank: " ++ (show rank)
 
-displayHand :: HoldEmHand -> IO ()
+displayHand :: HoleCards -> IO ()
 displayHand x = do putStrLn $ showHand x
 
-displayHands :: [HoldEmHand] -> IO ()
+displayHands :: [HoleCards] -> IO ()
 displayHands [] = putStrLn ""
 displayHands (x:xs) = do displayHand x
                          displayHands xs
@@ -105,7 +110,7 @@ displayHands (x:xs) = do displayHand x
 -- hand reading functions
 
 -- TODO: create hand shape data type and show function for it
-handShape :: HoldEmHand -> String
+handShape :: HoleCards -> String
 handShape hand = concat [s, " ", c]
   where s = case (suited hand) of
           True -> "suited"
@@ -115,7 +120,7 @@ handShape hand = concat [s, " ", c]
           False -> ""
 
 -- rank hands against flop from deck, returns pair of board and array of hands with their ranks
-rankHands :: ([Card],[HoldEmHand]) -> ([Card],[(HoldEmHand,PokerRank)])
+rankHands :: ([Card],[HoleCards]) -> ([Card],[(HoleCards,PokerRank)])
 rankHands (board,hands) = (board,ranked)
   where ranked = map (\x -> (x, (pokerRank board x)) ) hands
 
@@ -130,9 +135,9 @@ evaluateOpposingHands rnd = do putStrLn "Evaluating hands....."
                                handB <- putStr "Second Hand: " >> getLine
                                putStrLn handB
                                let defaultHand = ((Card Two Spades), (Card Three Hearts))
-                                   hands = map readHoldEmHand [handA, handB]
+                                   hands = map readHoleCards [handA, handB]
                                    okay = all isJust hands
-                                   ma = fromMaybe defaultHand (readHoldEmHand handA)
+                                   ma = fromMaybe defaultHand (readHoleCards handA)
                                if okay
                                  then do putStrLn "read in hands"
                                          mapM_ putHandLn $ catMaybes hands
@@ -146,7 +151,7 @@ tallyEquityPercentage t = good % total
         bad = loss t
         total = fromInteger $ good + bad
 
-calcEquity :: StdGen -> Integer -> [HoldEmHand] -> [(HoldEmHand,ShowdownTally)]
+calcEquity :: StdGen -> Integer -> [HoleCards] -> [(HoleCards,ShowdownTally)]
 calcEquity rnd samples hands = mergeHandTallies tallies
   where tallies = foldr go [] boards
         go board acc = (pokerEquity board hands):acc
@@ -154,7 +159,7 @@ calcEquity rnd samples hands = mergeHandTallies tallies
         usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
         deck = filter (\x -> not $ elem x usedCards) standardDeck
 
-mergeHandTallies :: [[(HoldEmHand,ShowdownTally)]] -> [(HoldEmHand,ShowdownTally)]
+mergeHandTallies :: [[(HoleCards,ShowdownTally)]] -> [(HoleCards,ShowdownTally)]
 mergeHandTallies tallies = zipWith (,) hands ts
   where ts = mergeTallies $ map (map snd) tallies
         hands = map fst $ head tallies
@@ -174,7 +179,7 @@ generateBoards rnd count deck = unfoldr go (count,rnd,deck)
         thisRnd x = fst $ split x
         nextRnd x = snd $ split x
 
-evaluateHands :: Integer -> [HoldEmHand] -> IO ()
+evaluateHands :: Integer -> [HoleCards] -> IO ()
 evaluateHands samples hands = do
   rnd <- getStdGen
   mapM_ putHandLn $ hands
@@ -198,7 +203,7 @@ cmdLineEvalMain :: IO ()
 cmdLineEvalMain = do
   (seed:samplesStr:rest) <- getArgs
   let strCards = rest
-      hands = map readHoldEmHand strCards
+      hands = map readHoleCards strCards
       samples = read samplesStr :: Integer
   if all isJust hands
     then evaluateHands samples $ catMaybes hands

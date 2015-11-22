@@ -17,40 +17,41 @@ import Data.Char (chr)
 import Data.Maybe (Maybe, isJust, fromJust, catMaybes)
 import System.Random
 import System.Random.Shuffle
+import Data.Monoid
 
 -- rank
 data Rank = Ace
-          | Two
-          | Three
-          | Four
-          | Five
-          | Six
-          | Seven
-          | Eight
-          | Nine
-          | Ten
-          | Jack
-          | Queen
           | King
+          | Queen
+          | Jack
+          | Ten
+          | Nine
+          | Eight
+          | Seven
+          | Six
+          | Five
+          | Four
+          | Three
+          | Two
           deriving (Eq, Ord, Bounded, Enum)
 
 instance Show Rank where
   show Ace = "A"
-  show Two = "2"
-  show Three = "3"
-  show Four = "4"
-  show Five = "5"
-  show Six = "6"
-  show Seven = "7"
-  show Eight = "8"
-  show Nine = "9"
-  show Ten = "T"
-  show Jack = "J"
-  show Queen = "Q"
   show King = "K"
+  show Queen = "Q"
+  show Jack = "J"
+  show Ten = "T"
+  show Nine = "9"
+  show Eight = "8"
+  show Seven = "7"
+  show Six = "6"
+  show Five = "5"
+  show Four = "4"
+  show Three = "3"
+  show Two = "2"
 
 ranks :: [Rank]
-ranks = [Ace .. King]
+ranks = [Ace .. Two]
 
 rankUnicodeOffset :: Rank -> Int
 rankUnicodeOffset Queen = (fromEnum Queen) + 2
@@ -89,6 +90,9 @@ data Card = Card {
 instance Show Card where
   show (Card {rank = r, suit = s}) = (show r) ++ (show s) ++ " "
 --  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']
+
+instance Ord Card where
+  compare a b = (rank a `compare` rank b) `mappend` (suit a `compare` suit b)
 
 type Deck = [Card]
 
