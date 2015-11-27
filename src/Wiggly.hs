@@ -2,23 +2,46 @@
 
 module Wiggly
        (
+         headMay,
+         
          sortOn,
 
          nChooseK,
          chunkList,
-         comboCount
+         comboCount,
+         
+         weird,
+         firstThat
        )
        where
 
+import Data.Maybe
 import Data.Ord (comparing)
 import Data.List (sort, sortBy)
+
+import Debug.Trace (trace)
+
+
+firstThat :: (a -> Bool) -> [a] -> a
+firstThat f (x:xs)
+  | f x == True = x
+  | otherwise = firstThat f xs
+
+weird :: (Integral a) => a -> Maybe a
+weird 3 = (trace "weird ") Nothing
+weird n = (trace "normal ") Just n
+
+headMay :: [a] -> Maybe a
+headMay [] = Nothing
+headMay (x:xs) = Just x
+
 
 -- stolen from new base
 sortOn :: Ord b => (a -> b) -> [a] -> [a]
 sortOn f =
     map snd . sortBy (comparing fst) . map (\x -> let y = f x in y `seq` (y, x))
 
-comboCount :: Int -> Int -> Int
+comboCount :: (Integral a) => a -> a -> a
 comboCount n k
   | n < k = error "Cannot choose more than the number of elements"
   | n == k = 1
@@ -54,7 +77,7 @@ chunkList n xs = thisChunk : (chunkList n thisRemainder)
 -- diffX (x:xs) = snd $ foldr go (x,[]) xs
 --   where go ce (last,lst) = ((fromEnum ce),((fromEnum ce)-last):lst)
 
-diffY :: Num a => [a] -> [a]
+diffY :: (Num a) => [a] -> [a]
 diffY [] = []
 diffY (x:xs) = reverse $ snd $ foldl go (x,[]) xs
   where go (last,lst) ce = (ce,(ce-last):lst)

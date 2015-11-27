@@ -13,7 +13,7 @@ import qualified Data.ByteString as BS
 import Control.Monad
 import Data.Monoid
 import Data.Maybe
-import Wiggly (chunkList)
+import Wiggly (chunkList, nChooseK)
 import Control.Applicative
 import Data.Ratio
 import Numeric
@@ -80,10 +80,10 @@ putHandLn hand = do putHand hand
 
 putEquity :: (HoleCards,ShowdownTally) -> IO ()
 putEquity (h,t) = do putHand h
-                     putStrLn $ " equity - win: " ++ we ++ "% - tie: " ++ te ++ "%"
-  where we = formatFloatN (100 * (fromRational ( (win t) % total ))) 2
-        te = formatFloatN (100 * (fromRational ( (tie t) % total ))) 2
-        total = (win t) + (tie t) + (loss t)
+                     putStrLn $ " equity - win: " ++ winPct ++ "% - tie: " ++ tiePct ++ "%"
+  where winPct = formatFloatN we 2
+        tiePct = formatFloatN te 2
+        (we,te) = percentTally t
 
 putTally :: (HoleCards,ShowdownTally) -> IO ()
 putTally (h,t) = do putHand h
@@ -146,12 +146,12 @@ evaluateOpposingHands rnd = do putStrLn "Evaluating hands....."
                                  else putStrLn "couldn't read hands"
 
 tallyEquityPercentage :: ShowdownTally -> Rational
-tallyEquityPercentage t = good % total
-  where good = fromInteger $ win t + tie t
+tallyEquityPercentage t = (fromIntegral good) % (fromIntegral total)
+  where good = win t + tie t
         bad = loss t
-        total = fromInteger $ good + bad
+        total = good + bad
 
-calcEquity :: StdGen -> Integer -> [HoleCards] -> [(HoleCards,ShowdownTally)]
+calcEquity :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
 calcEquity rnd samples hands = mergeHandTallies tallies
   where tallies = foldr go [] boards
         go board acc = (pokerEquity board hands):acc
@@ -170,7 +170,7 @@ mergeTallies tallies = foldr go (replicate (length $ head tallies) blankTally) t
   where go t acc = zipWith addTally t acc
 
 
-generateBoards :: StdGen -> Integer -> [Card] -> [[Card]]
+generateBoards :: StdGen -> Int -> [Card] -> [[Card]]
 generateBoards rnd count deck = unfoldr go (count,rnd,deck)
   where go (n,r,d) = if n == 0
                      then Nothing
@@ -179,7 +179,10 @@ generateBoards rnd count deck = unfoldr go (count,rnd,deck)
         thisRnd x = fst $ split x
         nextRnd x = snd $ split x
 
-evaluateHands :: StdGen -> Integer -> [HoleCards] -> IO ()
+generateBoards' :: StdGen -> Int -> [Card] -> [[Card]]
+generateBoards' rnd count deck = take count $ nChooseK deck 5
+
+evaluateHands :: StdGen -> Int -> [HoleCards] -> IO ()
 evaluateHands rnd samples hands = do
   mapM_ putHandLn $ hands
   let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
@@ -204,7 +207,7 @@ cmdLineEvalMain = do
   let rnd = mkStdGen $ (read seed :: Int)
       strCards = rest
       hands = map readHoleCards strCards
-      samples = read samplesStr :: Integer
+      samples = read samplesStr :: Int
   if all isJust hands
     then evaluateHands rnd samples $ catMaybes hands
     else putStrLn $ "cannot parse hands: " ++ (unwords strCards)

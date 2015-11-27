@@ -37,6 +37,7 @@ module Poker
 
          blankTally,
          addTally,
+         percentTally,
 
          newWin,
          newTie,
@@ -110,18 +111,26 @@ pokerHandRank (PokerHand r _ _ _ _ _) = r
 pokerHandCards :: PokerHand -> [Card]
 pokerHandCards (PokerHand _ a b c d e) = [a,b,c,d,e]
 
-bestPokerHand :: [Card] -> PokerHand
-bestPokerHand cards = head $ hands ++ fallback
-  where fallback = [findHighCardHand cards]
-        hands = catMaybes [ f cards | f <- finders ]
+bestPokerHand' :: [Card] -> PokerHand
+bestPokerHand' cards = head $ hands ++ fallback
+  where fallback = [findHighCardHand sortedCards]
+        hands = catMaybes [ f sortedCards | f <- finders ]
         finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
+        sortedCards = sort cards
+
+bestPokerHand :: [Card] -> PokerHand
+bestPokerHand cards = fromJust $ firstThat isJust $ [ f sortedCards | f <- finders ] ++ fallback
+  where fallback = [Just $ findHighCardHand sortedCards]
+        finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
+        sortedCards = sort cards
+
 
 findHighCardHand :: [Card] -> PokerHand
 findHighCardHand cards = PokerHand HighCard a b c d e
   where (a:b:c:d:e:_) = take 5 $ sort cards
 
-findPairHand :: [Card] -> Maybe PokerHand
-findPairHand cards = if isPair cards
+findPairHand' :: [Card] -> Maybe PokerHand
+findPairHand' cards = if isPair cards
                      then constructHand
                      else Nothing
   where constructHand = Just $ PokerHand Pair a b c d e
@@ -129,6 +138,19 @@ findPairHand cards = if isPair cards
         nonPairCards = cards \\ pairCards
         (a:b:_) = pairCards
         (c:d:e:_) = take 3 $ sort nonPairCards
+
+findPairHand :: [Card] -> Maybe PokerHand
+findPairHand cards = do
+  pairCards <- findPair cards
+  nonPairCards <- return $ cards \\ pairCards
+  let (a:b:_) = pairCards
+      (c:d:e:_) = sort nonPairCards
+  return (PokerHand Pair a b c d e)
+
+findPair :: [Card] -> Maybe [Card]
+findPair cards = headMay $ filter (\x -> 2 == length x) $ groupCardsByRank cards
+  
+
 
 findTwoPairHand :: [Card] -> Maybe PokerHand
 findTwoPairHand cards = if isTwoPair cards
@@ -140,15 +162,32 @@ findTwoPairHand cards = if isTwoPair cards
         (a:b:c:d:_) = pairCards
         e = head $ sort nonPairCards
 
-findThreeOfAKindHand :: [Card] -> Maybe PokerHand
-findThreeOfAKindHand cards = if isThreeOfAKind cards
-                             then constructHand
-                             else Nothing
+findThreeOfAKindHand' :: [Card] -> Maybe PokerHand
+findThreeOfAKindHand' cards = if isThreeOfAKind cards
+                              then constructHand
+                              else Nothing
   where constructHand = Just $ PokerHand ThreeOfAKind a b c d e
         setCards = head $ filter (\x -> 3 == length x) $ groupCardsByRank cards
         nonSetCards = cards \\ setCards
         (a:b:c:_) = setCards
         (d:e:_) = take 2 $ sort nonSetCards
+
+findThreeOfAKindHand :: [Card] -> Maybe PokerHand
+findThreeOfAKindHand cards = do
+  setCards <- findSet cards
+  nonSetCards <- return $ cards \\ setCards
+  let (a:b:c:_) = setCards
+      (d:e:_) = take 2 $ sort nonSetCards
+  return (PokerHand ThreeOfAKind a b c d e)
+
+findSet :: [Card] -> Maybe [Card]
+findSet cards = headMay $ filter (\x -> 3 == length x) $ groupCardsByRank cards
+
+
+
+
+
+
 
 -- TODO: this needs to deal with Low straights correctly... i.e. 5, 4, 3, 2, A
 findStraightHand :: [Card] -> Maybe PokerHand
@@ -270,8 +309,9 @@ groupRanks :: [Card] -> [[Rank]]
 groupRanks xs = group . sort $ (map rank xs)
 
 
+-- TODO: we could make a better version that requires the cards to be sorted 
 groupCardsByRank :: [Card] -> [[Card]]
-groupCardsByRank xs = groupWith rank $ sort xs
+groupCardsByRank xs = groupWith rank xs
 
 
 countSuits :: [Card] -> Int
@@ -291,7 +331,7 @@ readHoleCards str
     where c1 = readCard $ take 2 str
           c2 = readCard $ drop 2 str
 
-data ShowdownTally = ShowdownTally { win :: Integer, tie :: Integer, loss :: Integer }
+data ShowdownTally = ShowdownTally { win :: Int, tie :: Int, loss :: Int }
                    deriving (Eq, Show)
 
 instance Ord ShowdownTally where
@@ -311,6 +351,19 @@ newTie = ShowdownTally { win = 0, tie = 1, loss = 0 }
 
 newLoss :: ShowdownTally
 newLoss = ShowdownTally { win = 0, tie = 0, loss = 1 }
+
+totalTally :: ShowdownTally -> Int
+totalTally t = (win t) + (tie t) + (loss t)
+
+percentTally :: (Fractional a) => ShowdownTally -> (a,a)
+percentTally t = (we,te)
+  where pct x = 100.0 * fromRational (x % total)
+        we = pct wint 
+        wint = toInteger $ win t
+        te = pct tint
+        tint = toInteger $ tie t
+        total = toInteger $ totalTally t
+  
 
 scnd :: (a,b,c) -> b
 scnd (_,x,_) = x
