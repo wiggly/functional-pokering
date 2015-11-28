@@ -118,12 +118,14 @@ bestPokerHand' cards = head $ hands ++ fallback
         finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
         sortedCards = sort cards
 
-bestPokerHand :: [Card] -> PokerHand
-bestPokerHand cards = fromJust $ firstThat isJust $ [ f sortedCards | f <- finders ] ++ fallback
+bestPokerHand'' :: [Card] -> PokerHand
+bestPokerHand'' cards = fromJust $ firstThat isJust $ [ f sortedCards | f <- finders ] ++ fallback
   where fallback = [Just $ findHighCardHand sortedCards]
         finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
         sortedCards = sort cards
 
+bestPokerHand :: [Card] -> PokerHand
+bestPokerHand = fromJust . constructPokerHand
 
 findHighCardHand :: [Card] -> PokerHand
 findHighCardHand cards = PokerHand HighCard a b c d e
@@ -149,8 +151,6 @@ findPairHand cards = do
 
 findPair :: [Card] -> Maybe [Card]
 findPair cards = headMay $ filter (\x -> 2 == length x) $ groupCardsByRank cards
-  
-
 
 findTwoPairHand :: [Card] -> Maybe PokerHand
 findTwoPairHand cards = if isTwoPair cards
@@ -182,12 +182,6 @@ findThreeOfAKindHand cards = do
 
 findSet :: [Card] -> Maybe [Card]
 findSet cards = headMay $ filter (\x -> 3 == length x) $ groupCardsByRank cards
-
-
-
-
-
-
 
 -- TODO: this needs to deal with Low straights correctly... i.e. 5, 4, 3, 2, A
 findStraightHand :: [Card] -> Maybe PokerHand
@@ -265,6 +259,16 @@ isStraight xs = or $ map isLegalInterval possibleHands
           | 0 == (head ranks) = (((last ranks) - (head ranks)) == 4) || (42 == (sum ranks))
           | otherwise = ((last ranks) - (head ranks)) == 4
 
+isStraight' :: [Card] -> Bool
+isStraight' xs = or $ map isLegalInterval possibleHands
+  where cardsPlusLowAce = sort $ xs ++ lowAces
+        lowAces = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
+        uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) cardsPlusLowAce
+        possibleHands = nChooseK uniqueOrderedRanks 5
+        isLegalInterval ranks
+          | 0 == (head ranks) = (((last ranks) - (head ranks)) == 4) || (42 == (sum ranks))
+          | otherwise = ((last ranks) - (head ranks)) == 4
+
 isFlush :: [Card] -> Bool
 isFlush xs = any (\x -> x > 4) suitCounts
   where suits = groupSuits xs
@@ -309,7 +313,7 @@ groupRanks :: [Card] -> [[Rank]]
 groupRanks xs = group . sort $ (map rank xs)
 
 
--- TODO: we could make a better version that requires the cards to be sorted 
+-- TODO: we could make a better version that requires the cards to be sorted
 groupCardsByRank :: [Card] -> [[Card]]
 groupCardsByRank xs = groupWith rank xs
 
@@ -358,12 +362,12 @@ totalTally t = (win t) + (tie t) + (loss t)
 percentTally :: (Fractional a) => ShowdownTally -> (a,a)
 percentTally t = (we,te)
   where pct x = 100.0 * fromRational (x % total)
-        we = pct wint 
+        we = pct wint
         wint = toInteger $ win t
         te = pct tint
         tint = toInteger $ tie t
         total = toInteger $ totalTally t
-  
+
 
 scnd :: (a,b,c) -> b
 scnd (_,x,_) = x
@@ -417,3 +421,143 @@ bestPokerFlush :: [Card] -> [Card]
 bestPokerFlush xs = head ordered
   where ordered = sortBy comp $ allPokerFlushes xs
         comp a b = (mconcat $ map (\x -> compare (snd x) (fst x)) $ zip a b)
+
+constructPokerHand :: [Card] -> Maybe PokerHand
+constructPokerHand unsortedCards = firstThat isJust hands
+  where hands = [ (constructStraightFlushHand suitedCards), (constructFourOfAKindHand quads cards), (constructFullHouseHand trips pairs), (constructFlushHand suitedCards), (constructStraightHand runningCards), (constructThreeOfAKindHand trips cards), (constructTwoPairHand pairs cards), (constructPairHand pairs cards), (constructHighCardHand cards) ]
+        cards = sort unsortedCards
+        rankedCards = groupCardsByRank cards
+        suitedCards = groupBySuits cards
+        runningCards = groupByRuns $ cards ++ lowAces cards
+        pairs = filter (\x -> 2 == length x) rankedCards
+        trips = filter (\x -> 3 == length x) rankedCards
+        quads = filter (\x -> 4 == length x) rankedCards
+        lowAces xs = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
+
+groupByRuns :: [Card] -> [[Card]]
+groupByRuns cards = groupByBreak 0 breaks uniqueRanks
+  where uniqueRanks = nubBy (\a b -> rank a == rank b) cards
+        breaks = runBreaks uniqueRanks
+
+-- convert cards to ranks and find out where discontinuities exist
+-- this shows us where to split the cards at
+runBreaks :: (Eq a, Num a, Enum a) => [Card] -> [Int]
+runBreaks [] = []
+runBreaks cards = indices
+  where xs = map (fromEnum . rank) cards
+        diffs = map (\(x,y) -> y-x ) $ zip xs (drop 1 xs)
+        diffIndices = zip diffs [1..]
+        breakPoints = filter (\x -> fst x /= 1) diffIndices
+        indices = map snd breakPoints
+
+-- group cards by break points
+groupByBreak :: Int -> [Int] -> [Card] -> [[Card]]
+groupByBreak start breaks [] = []
+groupByBreak start [] xs = [xs]
+groupByBreak start breaks xs = (fst taken):(groupByBreak break (tail breaks) (snd taken))
+  where break = head breaks
+        takeCount = break - start
+        taken = splitAt takeCount xs
+
+
+-- Find the best 5-card poker hand based on high card.
+--
+-- PRE: cards is sorted
+constructHighCardHand :: [Card] -> Maybe PokerHand
+constructHighCardHand cards = do
+  fiveCards <- takeMay 5 cards
+  let (a:b:c:d:e:_) = fiveCards
+  return (PokerHand HighCard a b c d e)
+
+-- Find the best 5-card poker hand based on a pair
+--
+-- PRE: pairs is an array of pairs found in the full set of cards
+-- PRE: cards is sorted
+constructPairHand :: [[Card]] -> [Card] -> Maybe PokerHand
+constructPairHand pairs cards = do
+  pair <- headMay pairs
+  nonPairCards <- return $ cards \\ pair
+  let (a:b:_) = pair
+      (c:d:e:_) = nonPairCards
+  return (PokerHand Pair a b c d e)
+
+-- Find the best 5-card poker hand based on two pair
+--
+-- PRE: pairs is an array of pairs found in the full set of cards
+-- PRE: cards is sorted
+constructTwoPairHand :: [[Card]] -> [Card] -> Maybe PokerHand
+constructTwoPairHand pairs cards = do
+  twoPair <- fmap concat $ takeMay 2 pairs
+  nonPairCards <- return $ cards \\ twoPair
+  let (a:b:c:d:_) = twoPair
+      (e:_) = nonPairCards
+  return (PokerHand TwoPair a b c d e)
+
+-- Find the best 5-card poker hand based on three of a kind
+--
+-- PRE: trips is an array of trips found in the full set of cards
+-- PRE: cards is sorted
+constructThreeOfAKindHand :: [[Card]] -> [Card] -> Maybe PokerHand
+constructThreeOfAKindHand trips cards = do
+  set <- headMay trips
+  nonSetCards <- return $ cards \\ set
+  let (a:b:c:_) = set
+      (d:e:_) = nonSetCards
+  return (PokerHand ThreeOfAKind a b c d e)
+
+-- Find the best 5-card poker hand based on straight
+--
+-- PRE: runs is an array of arrays of cards that form contiguous sequences
+constructStraightHand :: [[Card]] -> Maybe PokerHand
+constructStraightHand runs = do
+  highestRun <- headMay $ filter (\x -> length x > 4 ) runs
+  let (a:b:c:d:e:_) = highestRun
+  return (PokerHand Straight a b c d e)
+
+-- Find the best 5-card poker hand based on flush
+--
+-- PRE: suited is an array of arrays of cards that are grouped by suit
+-- TODO: this currently will only work for hands where only one flush is possible
+constructFlushHand :: [[Card]] -> Maybe PokerHand
+constructFlushHand suited = do
+  flush <- headMay $ filter (\x -> length x > 4 ) suited
+  let (a:b:c:d:e:_) = flush
+  return (PokerHand Flush a b c d e)
+
+-- Find the best 5-card poker hand based on full house
+--
+-- PRE: trips is an array of trips found in the full set of cards
+-- PRE: pairs is an array of pairs found in the full set of cards
+constructFullHouseHand :: [[Card]] -> [[Card]] -> Maybe PokerHand
+constructFullHouseHand trips pairs = do
+  set <- headMay trips
+  pair <- headMay pairs
+  let (a:b:c:_) = set
+      (d:e:_) = pair
+  return (PokerHand FullHouse a b c d e)
+
+-- Find the best 5-card poker hand based on four of a kind
+--
+-- PRE: quads is an array of trips found in the full set of cards
+-- PRE: cards is sorted
+constructFourOfAKindHand :: [[Card]] -> [Card] -> Maybe PokerHand
+constructFourOfAKindHand quads cards = do
+  quad <- headMay quads
+  nonQuadCards <- return $ cards \\ quad
+  let (a:b:c:d:_) = quad
+      e = head nonQuadCards
+  return (PokerHand FourOfAKind a b c d e)
+
+-- Find the best 5-card poker hand based on straight flush
+--
+-- PRE: suited is an array of arrays of cards that are grouped by suit
+-- TODO: this currently will only work for hands where only one flush is possible
+constructStraightFlushHand :: [[Card]] -> Maybe PokerHand
+constructStraightFlushHand suited = do
+  flush <- headMay $ filter (\x -> length x > 4 ) suited
+  let cards = flush ++ lowAces flush
+      lowAces xs = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
+      runningCards = groupByRuns cards
+  highestRun <- headMay $ filter (\x -> length x > 4 ) runningCards
+  let (a:b:c:d:e:_) = highestRun
+  return (PokerHand StraightFlush a b c d e)

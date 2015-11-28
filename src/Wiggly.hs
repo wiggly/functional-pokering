@@ -3,6 +3,7 @@
 module Wiggly
        (
          headMay,
+         takeMay,
          
          sortOn,
 
@@ -22,6 +23,25 @@ import Data.List (sort, sortBy)
 import Debug.Trace (trace)
 
 
+-- runny and ruggy are two things created when trying to break cards into subgroups based on contiguous rank values
+runny :: (Eq a, Num a, Enum a) => [a] -> [[a]]
+runny [] = []
+runny xs = [indices]
+  where diffs = map (\(x,y) -> y-x ) $ zip xs (drop 1 xs)
+        diffIndices = zip diffs [1..]
+        breakPoints = filter (\x -> fst x /= 1) diffIndices
+        indices = map snd breakPoints
+
+ruggy :: Int -> [Int] -> [Int] -> [[Int]]
+ruggy start breaks [] = []
+ruggy start [] xs = [xs]
+ruggy start breaks xs = (fst taken):(ruggy break (tail breaks) (snd taken))
+  where break = head breaks
+        takeCount = break - start
+        taken = splitAt takeCount xs
+
+
+
 firstThat :: (a -> Bool) -> [a] -> a
 firstThat f (x:xs)
   | f x == True = x
@@ -30,6 +50,11 @@ firstThat f (x:xs)
 weird :: (Integral a) => a -> Maybe a
 weird 3 = (trace "weird ") Nothing
 weird n = (trace "normal ") Just n
+
+takeMay :: Int -> [a] -> Maybe [a]
+takeMay n xs
+  | length xs >= n = Just $ take n xs
+  | otherwise = Nothing
 
 headMay :: [a] -> Maybe a
 headMay [] = Nothing

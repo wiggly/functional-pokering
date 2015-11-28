@@ -33,6 +33,7 @@ data Rank = Ace
           | Four
           | Three
           | Two
+          | LowAce
           deriving (Eq, Ord, Bounded, Enum)
 
 instance Show Rank where
@@ -49,6 +50,7 @@ instance Show Rank where
   show Four = "4"
   show Three = "3"
   show Two = "2"
+  show LowAce = "1"
 
 ranks :: [Rank]
 ranks = [Ace .. Two]
@@ -125,7 +127,7 @@ readCard (r:s:[])
 readCard _ = Nothing
 
 readRank :: Char -> Maybe Rank
-readRank 'A' = Just Ace
+readRank '1' = Just LowAce
 readRank '2' = Just Two
 readRank '3' = Just Three
 readRank '4' = Just Four
@@ -138,6 +140,7 @@ readRank 'T' = Just Ten
 readRank 'J' = Just Jack
 readRank 'Q' = Just Queen
 readRank 'K' = Just King
+readRank 'A' = Just Ace
 readRank _ = Nothing
 
 readSuit :: Char -> Maybe Suit

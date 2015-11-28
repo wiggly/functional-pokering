@@ -124,10 +124,6 @@ rankHands :: ([Card],[HoleCards]) -> ([Card],[(HoleCards,PokerRank)])
 rankHands (board,hands) = (board,ranked)
   where ranked = map (\x -> (x, (pokerRank board x)) ) hands
 
-
-
-
-
 evaluateOpposingHands :: StdGen -> IO ()
 evaluateOpposingHands rnd = do putStrLn "Evaluating hands....."
                                handA <- putStr "First Hand: " >> getLine
@@ -151,13 +147,31 @@ tallyEquityPercentage t = (fromIntegral good) % (fromIntegral total)
         bad = loss t
         total = good + bad
 
-calcEquity :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
-calcEquity rnd samples hands = mergeHandTallies tallies
+calcEquity' :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
+calcEquity' rnd samples hands = mergeHandTallies tallies
   where tallies = foldr go [] boards
         go board acc = (pokerEquity board hands):acc
         boards = generateBoards rnd samples deck
         usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
         deck = filter (\x -> not $ elem x usedCards) standardDeck
+
+calcEquity'' :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
+calcEquity'' rnd samples hands = zip hands tallies
+  where tallies = foldr go blankTallies boards
+        go board acc = zipWith addTally (map snd (pokerEquity board hands)) acc
+        boards = generateBoards rnd samples deck
+        usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+        deck = filter (\x -> not $ elem x usedCards) standardDeck
+        blankTallies = replicate (length hands) blankTally
+
+calcEquity :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
+calcEquity rnd samples hands = zip hands tallies
+  where tallies = foldl' go blankTallies boards
+        go acc board = zipWith addTally (map snd (pokerEquity board hands)) acc
+        boards = generateBoards rnd samples deck
+        usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+        deck = filter (\x -> not $ elem x usedCards) standardDeck
+        blankTallies = replicate (length hands) blankTally
 
 mergeHandTallies :: [[(HoleCards,ShowdownTally)]] -> [(HoleCards,ShowdownTally)]
 mergeHandTallies tallies = zipWith (,) hands ts
@@ -181,6 +195,9 @@ generateBoards rnd count deck = unfoldr go (count,rnd,deck)
 
 generateBoards' :: StdGen -> Int -> [Card] -> [[Card]]
 generateBoards' rnd count deck = take count $ nChooseK deck 5
+
+generateBoards'' :: StdGen -> Int -> [Card] -> [[Card]]
+generateBoards'' rnd count deck = nChooseK deck 5
 
 evaluateHands :: StdGen -> Int -> [HoleCards] -> IO ()
 evaluateHands rnd samples hands = do
