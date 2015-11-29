@@ -88,7 +88,7 @@ data PokerRank = StraightFlush
                deriving (Eq, Bounded, Enum, Ord, Show)
 
 -- a complete Hold Em hand along with its rank. Hands may be compared and ordered
-data PokerHand = PokerHand PokerRank Card Card Card Card Card
+data PokerHand = PokerHand PokerRank !Card !Card !Card !Card !Card
                deriving (Show)
 
 instance Eq PokerHand where
