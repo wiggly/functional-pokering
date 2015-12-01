@@ -1,4 +1,5 @@
 -- -*- mode: haskell; -*-
+{-# LANGUAGE BangPatterns #-}
 
 module Poker
        (
@@ -376,30 +377,27 @@ thrd :: (a,b,c) -> c
 thrd (_,_,x) = x
 
 -- hand/rank/
-pokerEquity :: [Card] -> [HoleCards] -> [(HoleCards,ShowdownTally)]
+pokerEquity :: [Card] -> [HoleCards] -> [ShowdownTally]
 pokerEquity deck hs = tallies
   where cards = map (mergeHoleCards deck) hs
         hands = map bestPokerHand cards
-        handsIdx = sortOn fst $ zip hands [0..((length hands)-1)]
-        grouped = groupWith fst handsIdx
+        handsIdx = zip hands [0..((length hands)-1)]
+        handsIdxOrdered = sortOn fst handsIdx
+        grouped = groupWith fst handsIdxOrdered
         winners = head grouped
-        losers = concat $ tail grouped
+        losers = concat $ tail grouped        
         tallyWinners = if length winners > 1
-                       then map (\x -> (fst x, snd x, newTie) ) winners
-                       else map (\x -> (fst x, snd x, newWin) ) winners
+                       then map (\x -> ((fst x), (snd x), newTie) ) winners
+                       else map (\x -> ((fst x), (snd x), newWin) ) winners
         tallyLosers = map (\x -> (fst x, snd x, newLoss) ) losers
-        handsIdxTallies = tallyWinners ++ tallyLosers
-        sortedHandsIdxTallies = sortOn scnd handsIdxTallies
-        tallies = zip hs $ map thrd sortedHandsIdxTallies
+        handsIdxTallies w l = w ++ l
+        sortedHandsIdxTallies = sortOn scnd $ handsIdxTallies tallyWinners tallyLosers
+        tallies = map thrd sortedHandsIdxTallies
 
-
-pokerHandsXXX :: [Card] -> [HoleCards] -> [(HoleCards,PokerHand)]
-pokerHandsXXX deck hs = holesAndHands
+pokerHands :: [Card] -> [HoleCards] -> [PokerHand]
+pokerHands deck hs = hands
   where cards = map (mergeHoleCards deck) hs
         hands = map bestPokerHand cards
-        holesAndHands = zip hs hands
---        sortHAH hah = trace ("hah:" ++ show hah) sortOn snd hah
---        grouped = trace ("sorted: " ++ show (sortHAH holesAndHands)) groupWith snd $ sortHAH holesAndHands
 
 -- so, this is a bit of a lie, it actually doesn't give you ALL poker straight combos.
 -- It cuts them down by removing repeated ranks that are available.

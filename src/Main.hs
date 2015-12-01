@@ -147,42 +147,14 @@ tallyEquityPercentage t = (fromIntegral good) % (fromIntegral total)
         bad = loss t
         total = good + bad
 
-calcEquity' :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
-calcEquity' rnd samples hands = mergeHandTallies tallies
-  where tallies = foldr go [] boards
-        go board acc = (pokerEquity board hands):acc
-        boards = generateBoards rnd samples deck
-        usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
-        deck = filter (\x -> not $ elem x usedCards) standardDeck
-
-calcEquity'' :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
-calcEquity'' rnd samples hands = zip hands tallies
-  where tallies = foldr go blankTallies boards
-        go board acc = zipWith addTally (map snd (pokerEquity board hands)) acc
-        boards = generateBoards rnd samples deck
-        usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
-        deck = filter (\x -> not $ elem x usedCards) standardDeck
-        blankTallies = replicate (length hands) blankTally
-
-calcEquity :: StdGen -> Int -> [HoleCards] -> [(HoleCards,ShowdownTally)]
-calcEquity rnd samples hands = zip hands tallies
+calcEquity :: StdGen -> Int -> [HoleCards] -> [ShowdownTally]
+calcEquity rnd samples hands = tallies
   where tallies = foldl' go blankTallies boards
-        go acc board = zipWith addTally (map snd (pokerEquity board hands)) acc
+        go acc board = zipWith addTally (pokerEquity board hands) acc
         boards = generateBoards rnd samples deck
         usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
         deck = filter (\x -> not $ elem x usedCards) standardDeck
         blankTallies = replicate (length hands) blankTally
-
-mergeHandTallies :: [[(HoleCards,ShowdownTally)]] -> [(HoleCards,ShowdownTally)]
-mergeHandTallies tallies = zipWith (,) hands ts
-  where ts = mergeTallies $ map (map snd) tallies
-        hands = map fst $ head tallies
-
-
-mergeTallies ::  [[ShowdownTally]] -> [ShowdownTally]
-mergeTallies tallies = foldr go (replicate (length $ head tallies) blankTally) tallies
-  where go t acc = zipWith addTally t acc
-
 
 generateBoards :: StdGen -> Int -> [Card] -> [[Card]]
 generateBoards rnd count deck = unfoldr go (count,rnd,deck)
@@ -215,8 +187,8 @@ evaluateHands rnd samples hands = do
   putStrLn ""
   if length usedCards /= (length . nub) usedCards
     then error "ERR: Cards shared between hands"
-    else do mapM_ putEquity equity
-            mapM_ putTally equity
+    else do mapM_ putEquity $ zip hands equity
+            mapM_ putTally $ zip hands equity
 
 cmdLineEvalMain :: IO ()
 cmdLineEvalMain = do
