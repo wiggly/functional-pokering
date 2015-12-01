@@ -124,22 +124,6 @@ rankHands :: ([Card],[HoleCards]) -> ([Card],[(HoleCards,PokerRank)])
 rankHands (board,hands) = (board,ranked)
   where ranked = map (\x -> (x, (pokerRank board x)) ) hands
 
-evaluateOpposingHands :: StdGen -> IO ()
-evaluateOpposingHands rnd = do putStrLn "Evaluating hands....."
-                               handA <- putStr "First Hand: " >> getLine
-                               putStrLn handA
-                               handB <- putStr "Second Hand: " >> getLine
-                               putStrLn handB
-                               let defaultHand = ((Card Two Spades), (Card Three Hearts))
-                                   hands = map readHoleCards [handA, handB]
-                                   okay = all isJust hands
-                                   ma = fromMaybe defaultHand (readHoleCards handA)
-                               if okay
-                                 then do putStrLn "read in hands"
-                                         mapM_ putHandLn $ catMaybes hands
-                                         --putHandLn $ fromJust $ head hands
-                                         --putHandLn $ fromJust $ last hands
-                                 else putStrLn "couldn't read hands"
 
 tallyEquityPercentage :: ShowdownTally -> Rational
 tallyEquityPercentage t = (fromIntegral good) % (fromIntegral total)
@@ -200,18 +184,5 @@ cmdLineEvalMain = do
   if all isJust hands
     then evaluateHands rnd samples $ catMaybes hands
     else putStrLn $ "cannot parse hands: " ++ (unwords strCards)
-
-testMain :: IO ()
-testMain = do
-  args <- getArgs
-  let seed = read (head args) :: Int
-      rnd = mkStdGen seed
-      shuffled = shuffleDeck rnd standardDeck
-      (hands, remainder) = (generateHands shuffled 8)
-      (board, rankedHands) = rankHands ( (take 5 remainder), hands)
-  putTable board rankedHands
-  putStrLn "End of board\n\n"
-  putHandLn (fst (head (drop 3 rankedHands)))
-  evaluateOpposingHands rnd
 
 main = cmdLineEvalMain
