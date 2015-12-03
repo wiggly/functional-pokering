@@ -17,6 +17,9 @@ import Wiggly (chunkList, nChooseK)
 import Control.Applicative
 import Data.Ratio
 import Numeric
+import Control.DeepSeq
+
+import Debug.Trace (trace)
 
 formatFloatN floatNum numOfDecimals = showFFloat (Just numOfDecimals) floatNum ""
 
@@ -132,16 +135,20 @@ tallyEquityPercentage t = (fromIntegral good) % (fromIntegral total)
         total = good + bad
 
 calcEquity :: StdGen -> Int -> [HoleCards] -> [ShowdownTally]
-calcEquity rnd samples hands = tallies
-  where tallies = foldl' go blankTallies boards
-        go acc board = zipWith addTally (pokerEquity board hands) acc
-        boards = generateBoards rnd samples deck
-        usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
-        deck = filter (\x -> not $ elem x usedCards) standardDeck
-        blankTallies = replicate (length hands) blankTally
+calcEquity rnd samples hands = let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+                                   deck = standardDeck \\ usedCards
+                                   boards = generateBoards rnd samples deck
+                                   blankTallies = replicate (length hands) blankTally
+                               in foldr go blankTallies boards
+  where go board acc = strictResult board hands acc
 
-generateBoards :: StdGen -> Int -> [Card] -> [[Card]]
-generateBoards rnd count deck = unfoldr go (count,rnd,deck)
+strictResult :: [Card] -> [HoleCards] -> [ShowdownTally] -> [ShowdownTally]
+strictResult board hands total = let thisBoard = pokerEquity board hands
+                                     combined = zipWith addTally thisBoard total
+                                 in force combined
+
+generateBoards'' :: StdGen -> Int -> [Card] -> [[Card]]
+generateBoards'' rnd count deck = unfoldr go (count,rnd,deck)
   where go (n,r,d) = if n == 0
                      then Nothing
                      else Just ( (board r), (n-1,(nextRnd r),deck))
@@ -149,11 +156,20 @@ generateBoards rnd count deck = unfoldr go (count,rnd,deck)
         thisRnd x = fst $ split x
         nextRnd x = snd $ split x
 
+generateBoards :: StdGen -> Int -> [Card] -> [[Card]]
+generateBoards rnd count deck = unfoldr genB (count,rnd,deck)
+
+genB :: (Int,StdGen,[Card]) -> Maybe ([Card],(Int,StdGen,[Card]))
+genB (0,r,d) = Nothing
+genB (n,r,d) = Just ((board (fst rands)),(n-1,(snd rands),d))
+  where rands = split r
+        board x = take 5 $ shuffleDeck x d
+
 generateBoards' :: StdGen -> Int -> [Card] -> [[Card]]
 generateBoards' rnd count deck = take count $ nChooseK deck 5
 
-generateBoards'' :: StdGen -> Int -> [Card] -> [[Card]]
-generateBoards'' rnd count deck = nChooseK deck 5
+generateBoards''' :: StdGen -> Int -> [Card] -> [[Card]]
+generateBoards''' rnd count deck = nChooseK deck 5
 
 evaluateHands :: StdGen -> Int -> [HoleCards] -> IO ()
 evaluateHands rnd samples hands = do
@@ -171,8 +187,10 @@ evaluateHands rnd samples hands = do
   putStrLn ""
   if length usedCards /= (length . nub) usedCards
     then error "ERR: Cards shared between hands"
-    else do mapM_ putEquity $ zip hands equity
-            mapM_ putTally $ zip hands equity
+    else do putStrLn "CALCULATING EQUITY NOW"
+            let result = zip hands equity
+            mapM_ putEquity result
+            mapM_ putTally result
 
 cmdLineEvalMain :: IO ()
 cmdLineEvalMain = do

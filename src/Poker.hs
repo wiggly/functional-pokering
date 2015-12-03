@@ -54,6 +54,7 @@ import Data.Maybe (fromJust, isJust, catMaybes)
 import Data.Ratio
 import Data.Monoid
 import GHC.Exts (groupWith)
+import Control.DeepSeq
 
 import Debug.Trace (trace)
 
@@ -105,6 +106,10 @@ instance Ord PokerHand where
           rb = pokerHandRank b
           cra = map rank (pokerHandCards a)
           crb = map rank (pokerHandCards b)
+
+instance NFData PokerHand where
+  rnf x = seq x ()
+
 
 pokerHandRank :: PokerHand -> PokerRank
 pokerHandRank (PokerHand r _ _ _ _ _) = r
@@ -342,6 +347,9 @@ data ShowdownTally = ShowdownTally { win :: Int, tie :: Int, loss :: Int }
 instance Ord ShowdownTally where
   compare a b = compare ((win a) + (tie a) - (loss a)) ((win b) + (tie b) - (loss b))
 
+instance NFData ShowdownTally where
+  rnf x = seq x ()
+
 addTally :: ShowdownTally -> ShowdownTally -> ShowdownTally
 addTally x y = ShowdownTally { win = (win x) + (win y), loss = (loss x) + (loss y), tie = (tie x) + (tie y) }
 
@@ -378,21 +386,20 @@ thrd (_,_,x) = x
 
 -- hand/rank/
 pokerEquity :: [Card] -> [HoleCards] -> [ShowdownTally]
-pokerEquity deck hs = tallies
-  where cards = map (mergeHoleCards deck) hs
-        hands = map bestPokerHand cards
-        handsIdx = zip hands [0..((length hands)-1)]
-        handsIdxOrdered = sortOn fst handsIdx
-        grouped = groupWith fst handsIdxOrdered
-        winners = head grouped
-        losers = concat $ tail grouped        
-        tallyWinners = if length winners > 1
-                       then map (\x -> ((fst x), (snd x), newTie) ) winners
-                       else map (\x -> ((fst x), (snd x), newWin) ) winners
-        tallyLosers = map (\x -> (fst x, snd x, newLoss) ) losers
-        handsIdxTallies w l = w ++ l
-        sortedHandsIdxTallies = sortOn scnd $ handsIdxTallies tallyWinners tallyLosers
-        tallies = map thrd sortedHandsIdxTallies
+pokerEquity deck hs = let cards = map (mergeHoleCards deck) hs
+                          hands = map bestPokerHand cards
+                          handsIdx = zip hands [0..((length hands)-1)]
+                          handsIdxOrdered = sortOn fst handsIdx
+                          grouped = groupWith fst handsIdxOrdered
+                          winners = head grouped
+                          losers = concat $ tail grouped        
+                          tallyLosers = map (\x -> (fst x, snd x, newLoss) ) losers
+                          handsIdxTallies w l = w ++ l
+                          sortedHandsIdxTallies = sortOn scnd $ handsIdxTallies (tallyWinners winners) tallyLosers
+                      in map thrd sortedHandsIdxTallies
+  where tallyWinners x = if length x > 1
+                         then map (\x -> ((fst x), (snd x), newTie) ) x
+                         else map (\x -> ((fst x), (snd x), newWin) ) x
 
 pokerHands :: [Card] -> [HoleCards] -> [PokerHand]
 pokerHands deck hs = hands
