@@ -141,7 +141,7 @@ calcEquity rnd samples hands = let usedCards = foldr (\x acc -> (fst x):(snd x):
                                    boards = generateBoards rnd samples deck
                                    blankTallies = replicate (length hands) blankTally
                                in foldr go blankTallies boards
-  where go board acc = strictResult board hands acc
+  where go board acc = strictResult board hands $!! acc
 
 strictResult :: [Card] -> [HoleCards] -> [ShowdownTally] -> [ShowdownTally]
 strictResult board hands total = let thisBoard = pokerEquity board hands
