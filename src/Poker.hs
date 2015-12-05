@@ -90,7 +90,7 @@ data PokerRank = StraightFlush
                deriving (Eq, Bounded, Enum, Ord, Show)
 
 -- a complete Hold Em hand along with its rank. Hands may be compared and ordered
-data PokerHand = PokerHand PokerRank !Card !Card !Card !Card !Card
+data PokerHand = PokerHand PokerRank Card Card Card Card Card
                deriving (Show)
 
 instance Eq PokerHand where
@@ -108,8 +108,7 @@ instance Ord PokerHand where
           crb = map rank (pokerHandCards b)
 
 instance NFData PokerHand where
-  rnf x = seq x ()
-
+  rnf (PokerHand r a b c d e) = r `seq` a `seq` b `seq` c `seq` d `seq` e `seq` ()
 
 pokerHandRank :: PokerHand -> PokerRank
 pokerHandRank (PokerHand r _ _ _ _ _) = r
@@ -348,7 +347,7 @@ instance Ord ShowdownTally where
   compare a b = compare ((win a) + (tie a) - (loss a)) ((win b) + (tie b) - (loss b))
 
 instance NFData ShowdownTally where
-  rnf x = seq x ()
+  rnf ShowdownTally {win=a, tie=b, loss=c} = a `seq` b `seq` c `seq` ()
 
 addTally :: ShowdownTally -> ShowdownTally -> ShowdownTally
 addTally x y = ShowdownTally { win = (win x) + (win y), loss = (loss x) + (loss y), tie = (tie x) + (tie y) }
@@ -396,7 +395,8 @@ pokerEquity deck hs = let cards = map (mergeHoleCards deck) hs
                           tallyLosers = map (\x -> (fst x, snd x, newLoss) ) losers
                           handsIdxTallies w l = w ++ l
                           sortedHandsIdxTallies = sortOn scnd $ handsIdxTallies (tallyWinners winners) tallyLosers
-                      in map thrd sortedHandsIdxTallies
+                          tallies = map thrd sortedHandsIdxTallies
+                      in force tallies
   where tallyWinners x = if length x > 1
                          then map (\x -> ((fst x), (snd x), newTie) ) x
                          else map (\x -> ((fst x), (snd x), newWin) ) x
@@ -428,16 +428,17 @@ bestPokerFlush xs = head ordered
         comp a b = (mconcat $ map (\x -> compare (snd x) (fst x)) $ zip a b)
 
 constructPokerHand :: [Card] -> Maybe PokerHand
-constructPokerHand unsortedCards = firstThat isJust hands
-  where hands = [ (constructStraightFlushHand suitedCards), (constructFourOfAKindHand quads cards), (constructFullHouseHand trips pairs), (constructFlushHand suitedCards), (constructStraightHand runningCards), (constructThreeOfAKindHand trips cards), (constructTwoPairHand pairs cards), (constructPairHand pairs cards), (constructHighCardHand cards) ]
-        cards = sort unsortedCards
-        rankedCards = groupCardsByRank cards
-        suitedCards = groupBySuits cards
-        runningCards = groupByRuns $ cards ++ lowAces cards
-        pairs = filter (\x -> 2 == length x) rankedCards
-        trips = filter (\x -> 3 == length x) rankedCards
-        quads = filter (\x -> 4 == length x) rankedCards
-        lowAces xs = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
+constructPokerHand unsortedCards = let result h = firstThat isJust h
+                                       hands = [ (constructStraightFlushHand suitedCards), (constructFourOfAKindHand quads cards), (constructFullHouseHand trips pairs), (constructFlushHand suitedCards), (constructStraightHand runningCards), (constructThreeOfAKindHand trips cards), (constructTwoPairHand pairs cards), (constructPairHand pairs cards), (constructHighCardHand cards) ]
+                                       cards = sort unsortedCards
+                                       rankedCards = groupCardsByRank cards
+                                       suitedCards = groupBySuits cards
+                                       runningCards = groupByRuns $ cards ++ lowAces cards
+                                       pairs = filter (\x -> 2 == length x) rankedCards
+                                       trips = filter (\x -> 3 == length x) rankedCards
+                                       quads = filter (\x -> 4 == length x) rankedCards
+                                       lowAces xs = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
+                                   in result hands
 
 groupByRuns :: [Card] -> [[Card]]
 groupByRuns cards = groupByBreak 0 breaks uniqueRanks

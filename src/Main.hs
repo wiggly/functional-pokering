@@ -1,4 +1,5 @@
 -- -*- mode: haskell; -*-
+{-# LANGUAGE BangPatterns #-}
 
 module Main (main) where
 
@@ -145,7 +146,7 @@ calcEquity rnd samples hands = let usedCards = foldr (\x acc -> (fst x):(snd x):
 strictResult :: [Card] -> [HoleCards] -> [ShowdownTally] -> [ShowdownTally]
 strictResult board hands total = let thisBoard = pokerEquity board hands
                                      combined = zipWith addTally thisBoard total
-                                 in force combined
+                                 in combined
 
 generateBoards'' :: StdGen -> Int -> [Card] -> [[Card]]
 generateBoards'' rnd count deck = unfoldr go (count,rnd,deck)
