@@ -20,8 +20,19 @@ rankHands :: ([Card],[HoleCards]) -> ([Card],[(HoleCards,PokerRank)])
 rankHands (board,hands) = (board,ranked)
   where ranked = map (\x -> (x, (pokerRank board x)) ) hands
 
+-- this version actually works and memory stays below 60kB on the heap graph 
 calcEquity :: StdGen -> Int -> [HoleCards] -> [ShowdownTally]
 calcEquity rnd samples hands = let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+                                   unUsedCards = standardDeck \\ usedCards
+                                   deck = take samples $ shuffleDeck rnd unUsedCards
+                                   boards = generateBoards deck
+                                   blankTallies = replicate (length hands) blankTally
+                               in foldl' go blankTallies boards
+  where go total board = zipWith addTally (pokerEquity board hands) $!! total
+
+-- this version, for some reason, evaluates the entire set of boards before beginning processing
+xalcEquity :: StdGen -> Int -> [HoleCards] -> [ShowdownTally]
+xalcEquity rnd samples hands = let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
                                    unUsedCards = standardDeck \\ usedCards
                                    deck = take samples $ shuffleDeck rnd unUsedCards
                                    boards = generateBoards deck
