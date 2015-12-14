@@ -42,8 +42,11 @@ module Poker
 
          newWin,
          newTie,
-         newLoss
+         newLoss,
 
+         generateBoards,
+
+         handShape
        )
        where
 
@@ -55,6 +58,7 @@ import Data.Ratio
 import Data.Monoid
 import GHC.Exts (groupWith)
 import Control.DeepSeq
+import Data.Choose as DC
 
 import Debug.Trace (trace)
 
@@ -376,30 +380,20 @@ percentTally t = (we,te)
         tint = toInteger $ tie t
         total = toInteger $ totalTally t
 
-
-scnd :: (a,b,c) -> b
-scnd (_,x,_) = x
-
-thrd :: (a,b,c) -> c
-thrd (_,_,x) = x
-
--- hand/rank/
 pokerEquity :: [Card] -> [HoleCards] -> [ShowdownTally]
-pokerEquity deck hs = let cards = map (mergeHoleCards deck) hs
-                          hands = map bestPokerHand cards
-                          handsIdx = zip hands [0..((length hands)-1)]
-                          handsIdxOrdered = sortOn fst handsIdx
-                          grouped = groupWith fst handsIdxOrdered
-                          winners = head grouped
-                          losers = concat $ tail grouped        
-                          tallyLosers = map (\x -> (fst x, snd x, newLoss) ) losers
-                          handsIdxTallies w l = w ++ l
-                          sortedHandsIdxTallies = sortOn scnd $ handsIdxTallies (tallyWinners winners) tallyLosers
-                          tallies = map thrd sortedHandsIdxTallies
-                      in force tallies
-  where tallyWinners x = if length x > 1
-                         then map (\x -> ((fst x), (snd x), newTie) ) x
-                         else map (\x -> ((fst x), (snd x), newWin) ) x
+pokerEquity deck hs = let hands = pokerHands deck hs
+                      in pokerHandsToTally hands
+
+pokerHandsToTally :: [PokerHand] -> [ShowdownTally]
+pokerHandsToTally hs = let best = head $ group $ sort hs
+                           bob = head best
+                           good = if length best > 1
+                             then newTie
+                             else newWin
+                       in map (\x -> tallyForHand x bob good newLoss) hs
+  where tallyForHand h c g b = if h == c
+                               then g
+                               else b
 
 pokerHands :: [Card] -> [HoleCards] -> [PokerHand]
 pokerHands deck hs = hands
@@ -567,3 +561,23 @@ constructStraightFlushHand suited = do
   highestRun <- headMay $ filter (\x -> length x > 4 ) runningCards
   let (a:b:c:d:e:_) = highestRun
   return (PokerHand StraightFlush a b c d e)
+
+-- Generate all possible unique HoldEm community boards from a deck provided
+generateBoards :: [Card] -> [[Card]]
+generateBoards deck = let initial = Just $ DC.choose (length deck) 5
+                      in unfoldr go initial
+  where go nck
+          | isJust nck = Just (board deck (DC.elems (fromJust nck)), DC.next (fromJust nck))
+          | otherwise = Nothing
+        board c i = map (\x -> c !! x) i
+
+
+-- TODO: create a data type for this
+handShape :: HoleCards -> String
+handShape hand = concat [s, " ", c]
+  where s = case (suited hand) of
+          True -> "suited"
+          False -> "off-suit"
+        c = case (connected hand) of
+          True -> "connected"
+          False -> ""

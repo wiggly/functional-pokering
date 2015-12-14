@@ -18,7 +18,7 @@ import Data.Maybe (Maybe, isJust, fromJust, catMaybes)
 import System.Random
 import System.Random.Shuffle
 import Data.Monoid
-import Control.DeepSeq 
+import Control.DeepSeq
 
 -- rank
 data Rank = Ace
@@ -98,7 +98,7 @@ instance Ord Card where
   compare a b = (rank a `compare` rank b) `mappend` (suit a `compare` suit b)
 
 instance NFData Card where
-  rnf x = seq x ()
+  rnf (Card {rank=r, suit=s}) = r `seq` s `seq` ()
 
 type Deck = [Card]
 
