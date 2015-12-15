@@ -6,7 +6,6 @@ import Poker (
   HoleCards(..),
   PokerRank(..),
   PokerHand(..),
-  isPair, isTwoPair, isThreeOfAKind, isStraight, isFlush, isFullHouse, isFourOfAKind, isStraightFlush,
   pokerEquity, newWin, newTie, newLoss,
   pokerRank, readHoleCards,
 
@@ -43,85 +42,11 @@ bestHandTestCase cards expected = TestCase $ assertEqual fullMessage expected ac
   where fullMessage = cards ++ " best poker hand is " ++ (show expected)
         actual = bestPokerHand $ testCards cards
 
-
-
-
-
-
-
-pairTests = TestList [
-  handTestCase "Ks Kh 2c 3d 8s 4d 9c" isPair assertTrue "Pair",
-  handTestCase "Ks Qh 2c 3d 8s 4d 9c" isPair assertFalse "NOT Pair"
-  ]
-
-twoPairTests = TestList [
-  handTestCase "Ks Kh Qs Qh 3d 4d 9c" isTwoPair assertTrue "Two Pair",
-  handTestCase "Ks Kh 2c 3d 8s 4d 9c" isTwoPair assertFalse "NOT Two Pair",
-  handTestCase "Ks Qh 2c 3d 8s 4d 9c" isTwoPair assertFalse "NOT Two Pair"
-  ]
-
-threeOfAKindTests = TestList [
-  handTestCase "Ks Kh Kd 2c 5s 4d 9c" isThreeOfAKind assertTrue "Three of a Kind",
-  handTestCase "Ks Kh Qd 2c 5s 4d 9c" isThreeOfAKind assertFalse "NOT Three of a Kind"
-  ]
-
-straightTests = TestList [
-  handTestCase "As 2h 3d 4c 5s 4d 9c" isStraight assertTrue "Straight",
-  handTestCase "2h 3d 4c 5s 6h 4d 9c" isStraight assertTrue "Straight",
-  handTestCase "3d 4c 5s 6h 7d 4d 9c" isStraight assertTrue "Straight",
-  handTestCase "9s Th Jd Qc Ks 4d 3c" isStraight assertTrue "Straight",
-  handTestCase "Th Jd Qc Ks Ah 4d 3c" isStraight assertTrue "Straight",
-  handTestCase "As 2s 3d 4c 6s 4d 9c" isStraight assertFalse "NOT Straight"
-  ]
-
-flushTests = TestList [
-  handTestCase "As 2s 3s 4s 6s 4d 9c" isFlush assertTrue "Flush",
-  handTestCase "As 2s 3s 4s 5s 4d 9c" isFlush assertTrue "Flush",
-  handTestCase "Js 8s 2s Ks 3s 4d 9c" isFlush assertTrue "Flush",
-  handTestCase "As 2s 3s 4c 6s 4d 9c" isFlush assertFalse "NOT Flush",
-  handTestCase "Ac 2h 3d 4c 6s 4d 9c" isFlush assertFalse "NOT Flush"
-  ]
-
-fullHouseTests = TestList [
-  handTestCase "As Ah Ad Ks Kh 4d 9c" isFullHouse assertTrue "Full House",
-  handTestCase "Ks As Kh Ah Ad 4d 9c" isFullHouse assertTrue "Full House",
-  handTestCase "2s 2h 2d 3s 3h 4d 9c" isFullHouse assertTrue "Full House",
-  handTestCase "2s 2h 2d As Kh 4d 9c" isFullHouse assertFalse "NOT Full House",
-  handTestCase "2s 4h 2d 3s 3h 4d 9c" isFullHouse assertFalse "NOT Full House",
-  handTestCase "2s 2h 2d 9s 3h 4d 8c" isFullHouse assertFalse "NOT Full House"
-  ]
-
-fourOfAKindTests = TestList [
-  handTestCase "As Ah Ad Ac Ks 4d 9c" isFourOfAKind assertTrue "Four of a Kind",
-  handTestCase "As Ah Ad Ac 2s 4d 9c" isFourOfAKind assertTrue "Four of a Kind",
-  handTestCase "2s 2h 2d 2c Ks 4d 9c" isFourOfAKind assertTrue "Four of a Kind",
-  handTestCase "2s Kh 2d 2c 2h 4d 9c" isFourOfAKind assertTrue "Four of a Kind",
-  handTestCase "As 2h Ad Ac Ks 4d 9c" isFourOfAKind assertFalse "NOT Four of a Kind",
-  handTestCase "As Ah Qd Ac Ks 4d 9c" isFourOfAKind assertFalse "NOT Four of a Kind",
-  handTestCase "9s Ah Ad Ac Ks 4d 9c" isFourOfAKind assertFalse "NOT Four of a Kind"
-  ]
-
-straightFlushTests = TestList [
-  handTestCase "As 2s 3s 4s 5s 4d 9c" isStraightFlush assertTrue "Straight Flush",
-  handTestCase "2s 3s 4s 5s 6s 4d 9c" isStraightFlush assertTrue "Straight Flush",
-  handTestCase "As 4s 5s 2s 3s 4d 9c" isStraightFlush assertTrue "Straight Flush",
-  handTestCase "Ts Js Qs Ks As 4d 9c" isStraightFlush assertTrue "Straight Flush",
-  handTestCase "Ts Js 9s Qs Ks 4d 9c" isStraightFlush assertTrue "Straight Flush",
-  handTestCase "Ac 2s 3s 4s 5s 4d 9c" isStraightFlush assertFalse "NOT Straight Flush",
-  handTestCase "As 6s 3s 4s 5s 4d 9c" isStraightFlush assertFalse "NOT Straight Flush",
-  handTestCase "As 2s Qs 4s 5s 4d 9c" isStraightFlush assertFalse "NOT Straight Flush",
-  handTestCase "As 2s 3s 4s 4c 4d 9c" isStraightFlush assertFalse "NOT Straight Flush"
-  
-  --handTestCase "4d 5d 6c 7s 8d 9d Td" isStraightFlush assertFalse "NOT Straight Flush"
-  ]
-
 testPokerRank_1 = TestCase $ assertEqual "Board: 8d Qd 8c Jc 3d with Hand: Ac, Js should be TwoPair"
                   TwoPair
                   ( pokerRank (testCards "8d Qd 8c Jc 3d") (testHand "AcJs") )
 
 rankTests = TestList [ testPokerRank_1 ]
-
-
 
 bestPokerHandTests = TestList [
   bestHandTestCase "Kc 4s 2s As 9d 3s 5s" $ testHand' StraightFlush "5s 4s 3s 2s 1s",
@@ -153,6 +78,7 @@ bestPokerHandTests = TestList [
   bestHandTestCase "Jd Qc Ks 9s Th 4d 3c" $ testHand' Straight "Ks Qc Jd Th 9s",
   bestHandTestCase "Th Jd Ah 4d Qc Ks 3c" $ testHand' Straight "Ah Ks Qc Jd Th",
 
+  
   -- TODO: add code to handle Low Ace
   bestHandTestCase "6c 5h 4c 3s 2s Kd As" $ testHand' Straight "6s 5s 4s 3s 2s",
 
@@ -167,30 +93,15 @@ bestPokerHandTests = TestList [
   bestHandTestCase "8c 4s 3d 7d As 2h Jh" $ testHand' HighCard "As Jh 8c 7d 4s",
   
   bestHandTestCase "4d 5d 6c 7s 8d 9d Td" $ testHand' Flush "Td 9d 8d 5d 4d"
-
-  
   ]
 
-
 equityTest_1 = TestCase $ assertEqual "AsKs vs 7d2c on 9c 3d 8s 4h Jd"
-                  [((testHand "AsKs"),newWin),((testHand "7d2c"),newLoss)]
+                  [newWin,newLoss]
                   ( pokerEquity (testCards "9c 3d 8s 4h Jd") [(testHand "AsKs"),(testHand "7d2c")] )
-
-
 
 equityTests = TestList [ equityTest_1 ]
 
-
-
 allTests = TestList [
-  pairTests,
-  twoPairTests,
-  threeOfAKindTests,
-  straightTests,
-  flushTests,
-  fullHouseTests,
-  fourOfAKindTests,
-  straightFlushTests,
   rankTests,
   equityTests,
   bestPokerHandTests ]

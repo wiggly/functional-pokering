@@ -7,13 +7,16 @@ module Poker
          pocketPair,
          suited,
          connected,
+         handShape,
 
          PokerRank (..),
          pokerRank,
 
          PokerHand (..),
          pokerHandCards,
+         pokerHandRank,
 
+         generateBoards,
          generateHands,
 
          groupRanks,
@@ -21,15 +24,6 @@ module Poker
          countSuits,
 
          bestPokerHand,
-
-         isPair,
-         isTwoPair,
-         isThreeOfAKind,
-         isStraight,
-         isFlush,
-         isFullHouse,
-         isFourOfAKind,
-         isStraightFlush,
 
          readHoleCards,
 
@@ -39,14 +33,9 @@ module Poker
          blankTally,
          addTally,
          percentTally,
-
          newWin,
          newTie,
-         newLoss,
-
-         generateBoards,
-
-         handShape
+         newLoss
        )
        where
 
@@ -120,145 +109,19 @@ pokerHandRank (PokerHand r _ _ _ _ _) = r
 pokerHandCards :: PokerHand -> [Card]
 pokerHandCards (PokerHand _ a b c d e) = [a,b,c,d,e]
 
-bestPokerHand' :: [Card] -> PokerHand
-bestPokerHand' cards = head $ hands ++ fallback
-  where fallback = [findHighCardHand sortedCards]
-        hands = catMaybes [ f sortedCards | f <- finders ]
-        finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
-        sortedCards = sort cards
-
-bestPokerHand'' :: [Card] -> PokerHand
-bestPokerHand'' cards = fromJust $ firstThat isJust $ [ f sortedCards | f <- finders ] ++ fallback
-  where fallback = [Just $ findHighCardHand sortedCards]
-        finders = [findStraightFlushHand, findFourOfAKindHand, findFullHouseHand, findFlushHand, findStraightHand, findThreeOfAKindHand, findTwoPairHand, findPairHand]
-        sortedCards = sort cards
-
 bestPokerHand :: [Card] -> PokerHand
 bestPokerHand = fromJust . constructPokerHand
 
-findHighCardHand :: [Card] -> PokerHand
-findHighCardHand cards = PokerHand HighCard a b c d e
-  where (a:b:c:d:e:_) = take 5 $ sort cards
-
-findPairHand' :: [Card] -> Maybe PokerHand
-findPairHand' cards = if isPair cards
-                     then constructHand
-                     else Nothing
-  where constructHand = Just $ PokerHand Pair a b c d e
-        pairCards = head $ filter (\x -> 2 == length x) $ groupCardsByRank cards
-        nonPairCards = cards \\ pairCards
-        (a:b:_) = pairCards
-        (c:d:e:_) = take 3 $ sort nonPairCards
-
-findPairHand :: [Card] -> Maybe PokerHand
-findPairHand cards = do
-  pairCards <- findPair cards
-  nonPairCards <- return $ cards \\ pairCards
-  let (a:b:_) = pairCards
-      (c:d:e:_) = sort nonPairCards
-  return (PokerHand Pair a b c d e)
-
-findPair :: [Card] -> Maybe [Card]
-findPair cards = headMay $ filter (\x -> 2 == length x) $ groupCardsByRank cards
-
-findTwoPairHand :: [Card] -> Maybe PokerHand
-findTwoPairHand cards = if isTwoPair cards
-                        then constructHand
-                        else Nothing
-  where constructHand = Just $ PokerHand TwoPair a b c d e
-        pairCards = concat $ take 2 $ filter (\x -> 2 == length x) $ groupCardsByRank cards
-        nonPairCards = cards \\ pairCards
-        (a:b:c:d:_) = pairCards
-        e = head $ sort nonPairCards
-
-findThreeOfAKindHand' :: [Card] -> Maybe PokerHand
-findThreeOfAKindHand' cards = if isThreeOfAKind cards
-                              then constructHand
-                              else Nothing
-  where constructHand = Just $ PokerHand ThreeOfAKind a b c d e
-        setCards = head $ filter (\x -> 3 == length x) $ groupCardsByRank cards
-        nonSetCards = cards \\ setCards
-        (a:b:c:_) = setCards
-        (d:e:_) = take 2 $ sort nonSetCards
-
-findThreeOfAKindHand :: [Card] -> Maybe PokerHand
-findThreeOfAKindHand cards = do
-  setCards <- findSet cards
-  nonSetCards <- return $ cards \\ setCards
-  let (a:b:c:_) = setCards
-      (d:e:_) = take 2 $ sort nonSetCards
-  return (PokerHand ThreeOfAKind a b c d e)
-
-findSet :: [Card] -> Maybe [Card]
-findSet cards = headMay $ filter (\x -> 3 == length x) $ groupCardsByRank cards
-
--- TODO: this needs to deal with Low straights correctly... i.e. 5, 4, 3, 2, A
-findStraightHand :: [Card] -> Maybe PokerHand
-findStraightHand cards = if isStraight cards
-                         then constructHand
-                         else Nothing
-  where constructHand = Just $ PokerHand Straight a b c d e
-        (a:b:c:d:e:_) = head $ allPokerStraights cards
-
-findFlushHand :: [Card] -> Maybe PokerHand
-findFlushHand cards = if isFlush cards
-                      then constructHand
-                      else Nothing
-  where constructHand = Just $ PokerHand Flush a b c d e
-        (a:b:c:d:e:_) = bestPokerFlush cards
-
-findFullHouseHand :: [Card] -> Maybe PokerHand
-findFullHouseHand cards = if isFullHouse cards
-                          then constructHand
-                          else Nothing
-  where constructHand = Just $ PokerHand FullHouse a b c d e
-        (a:b:c:d:e:_) = cards
-
-findFourOfAKindHand :: [Card] -> Maybe PokerHand
-findFourOfAKindHand cards = if isFourOfAKind cards
-                            then constructHand
-                            else Nothing
-  where constructHand = Just $ PokerHand FourOfAKind a b c d e
-        quadCards = sort $ head $ filter (\x -> 4 == length x) $ groupCardsByRank cards
-        nonQuadCards = cards \\ quadCards
-        (a:b:c:d:_) = quadCards
-        e = head $ sort nonQuadCards
-
-findStraightFlushHand :: [Card] -> Maybe PokerHand
-findStraightFlushHand cards = if isStraightFlush cards
-                              then constructHand
-                              else Nothing
-  where constructHand = Just $ PokerHand StraightFlush a b c d e
-        (a:b:c:d:e:_) = head $ sort $ filter isFlush $ allPokerFlushes cards
-
 -- take a board to choose from, a hand and return the best rank made by that hand on the board
 pokerRank :: [Card] -> HoleCards -> PokerRank
-pokerRank board hand
-  | isStraightFlush cards = StraightFlush
-  | isFourOfAKind cards = FourOfAKind
-  | isFullHouse cards = FullHouse
-  | isFlush cards = Flush
-  | isStraight cards = Straight
-  | isThreeOfAKind cards = ThreeOfAKind
-  | isTwoPair cards = TwoPair
-  | isPair cards = Pair
-  | otherwise = HighCard
-  where cards = (fst hand) : (snd hand) : board
+pokerRank board hand = let cards = (fst hand) : (snd hand) : board
+  in pokerHandRank $ bestPokerHand cards
 
-isPair :: [Card] -> Bool
-isPair xs = 1 == countPairs xs
-
-isTwoPair :: [Card] -> Bool
-isTwoPair xs = 2 == countPairs xs
-
-isThreeOfAKind :: [Card] -> Bool
-isThreeOfAKind xs = 1 == countTrips xs
-
---
+-- TODO: possibly broken
 -- this is a bit interesting. due to the fact that Ace enum value is zero we can't check that
 -- the interval between the first and last rank is exactly 4 so we instead have a check to see that
 -- an Ace is present and that the sum of the enum values is exactly what is required by the other
--- broadway cards
+-- broadway cards - this could be broken as well...TODO!!!
 --
 isStraight :: [Card] -> Bool
 isStraight xs = or $ map isLegalInterval possibleHands
@@ -267,32 +130,6 @@ isStraight xs = or $ map isLegalInterval possibleHands
         isLegalInterval ranks
           | 0 == (head ranks) = (((last ranks) - (head ranks)) == 4) || (42 == (sum ranks))
           | otherwise = ((last ranks) - (head ranks)) == 4
-
-isStraight' :: [Card] -> Bool
-isStraight' xs = or $ map isLegalInterval possibleHands
-  where cardsPlusLowAce = sort $ xs ++ lowAces
-        lowAces = map (\x -> (Card LowAce (suit x)) ) $ filter (\x -> (rank x) == Ace) xs
-        uniqueOrderedRanks = nub . sort $ map (fromEnum . rank) cardsPlusLowAce
-        possibleHands = nChooseK uniqueOrderedRanks 5
-        isLegalInterval ranks
-          | 0 == (head ranks) = (((last ranks) - (head ranks)) == 4) || (42 == (sum ranks))
-          | otherwise = ((last ranks) - (head ranks)) == 4
-
-isFlush :: [Card] -> Bool
-isFlush xs = any (\x -> x > 4) suitCounts
-  where suits = groupSuits xs
-        suitCounts = map length suits
-
-isFullHouse :: [Card] -> Bool
-isFullHouse xs = hasPair && hasTrips
-  where hasPair = 1 == countPairs xs
-        hasTrips = 1 == countTrips xs
-
-isFourOfAKind :: [Card] -> Bool
-isFourOfAKind xs = 1 == countQuads xs
-
-isStraightFlush :: [Card] -> Bool
-isStraightFlush xs = isStraight xs && isFlush xs
 
 -- generate some hands, return them and the remainder of the deck
 generateHands :: Deck -> Int -> ([HoleCards],Deck)
