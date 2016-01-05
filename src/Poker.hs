@@ -17,6 +17,7 @@ module Poker
          pokerHandRank,
 
          generateBoards,
+         generateBoard,
          generateHands,
 
          groupRanks,
@@ -418,3 +419,9 @@ handShape hand = concat [s, " ", c]
         c = case (connected hand) of
           True -> "connected"
           False -> ""
+
+-- generate board number N out of the deck available
+-- N is zero-indexed and should not be larger that the
+-- number of possible combinations
+generateBoard :: [Card] -> Int -> [Card]
+generateBoard deck n = map (\i -> deck !! i) $ nckValues n 5

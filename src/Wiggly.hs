@@ -4,15 +4,18 @@ module Wiggly
        (
          headMay,
          takeMay,
-         
+
          sortOn,
 
          nChooseK,
          chunkList,
          comboCount,
-         
+
          weird,
          firstThat
+
+       , nckValues
+
        )
        where
 
@@ -21,6 +24,21 @@ import Data.Ord (comparing)
 import Data.List (sort, sortBy)
 
 import Debug.Trace (trace)
+
+
+
+nckValuesBelow :: Int -> Int -> Int -> Int -> (Int, Int)
+nckValuesBelow limit k i v = let nv = comboCount (i+1) k
+                             in if nv > limit
+                                then (i,v)
+                                else nckValuesBelow limit k (i+1) nv
+
+-- determine the indices of the elements for n choose k where the limit is the Nth combination required
+nckValues :: Int -> Int -> [Int]
+nckValues limit k = let (i,v) = nckValuesBelow limit k 0 0
+                    in if k == 1
+                       then i : []
+                       else i : (nckValues (limit-v) (k-1))
 
 
 -- runny and ruggy are two things created when trying to break cards into subgroups based on contiguous rank values
@@ -67,11 +85,9 @@ sortOn f =
     map snd . sortBy (comparing fst) . map (\x -> let y = f x in y `seq` (y, x))
 
 comboCount :: (Integral a) => a -> a -> a
-comboCount n k
-  | n < k = error "Cannot choose more than the number of elements"
-  | n == k = 1
-  | k == 1 = n
-  | otherwise = (comboCount (n-1) k) + (comboCount (n-1) (k-1))
+comboCount n 0 = 1
+comboCount 0 k = 0
+comboCount n k = comboCount (n-1) (k-1) * n `div` k
 
 -- n choose k
 nChooseK :: [a] -> Int -> [[a]]
@@ -88,19 +104,6 @@ chunkList _ [] = []
 chunkList n xs = thisChunk : (chunkList n thisRemainder)
   where thisChunk = take n xs
         thisRemainder = drop n xs
-
-
--- groupRuns :: [a] -> [[a]]
--- groupRuns (x:xs) = foldr go ([x],[]) xs
---   where go x (current,runs) = if x == (p+1)
---                               then (init runs) ++ (tail runs) ++
---                               else runs ++ [[x]]
-
-
--- diffX :: Enum a => [a] -> [b]
--- diffX [] = []
--- diffX (x:xs) = snd $ foldr go (x,[]) xs
---   where go ce (last,lst) = ((fromEnum ce),((fromEnum ce)-last):lst)
 
 diffY :: (Num a) => [a] -> [a]
 diffY [] = []
