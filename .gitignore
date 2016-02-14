@@ -1,2 +1,2 @@
-dist
-functions.hs
+.cabal-sandbox/
+.stack-work/

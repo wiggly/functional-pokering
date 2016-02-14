@@ -14,21 +14,55 @@ This collection of libraries/tools is in a domain I understand that provides pro
 
  * Cards exist and have IO functions to present them neatly in the terminal
  * Decks can be created and shuffled
- * Hold Em hands can be created and ranked (mostly)
+ * Hold Em hands can be created and ranked
  * Hold Em hand shape can be determined
+ * Equity calculations for multiple hands on a sample of boards works
+ * Parallel calculator also present
 
 # Build
 
-Package uses cabal, so the folliwng will build the `fp` program
+This package uses the Stack build system.
 
-    cabal configure
-    cabal build
+## Normal
+
+Setup, build and install binaries to standard locations.
+
+```
+bash$ stack setup
+bash$ stack build
+bash$ stack install
+```
+
+## Profiling
+
+Build with profiling enabled in libraries.
+
+```
+bash$ stack setup
+bash$ stack build --executable-profiling --library-profiling --ghc-options="-fprof-auto -rtsopts"
+```
+
+Run with profiling options. These must come after the ```--``` to ensure all options gets passed to you program instead of the ```stack``` executable.
+
+```
+bash$ stack exec fp -- 123456 10000 "AdJd" "Ac3c" +RTS -N -p -s -h -i0.1
+```
+
+Inspect ```*.prof``` files or convert ```*.hp``` files into graphs using ```hp2ps```;
+
+```
+bash$  hp2ps -c fp.hp
+```
+
+Will produce a postscript graph of the heap for that run.
 
 # Usage
 
 The program currently takes input from the command line string. Requires a random seed, number of iterations to perform and Hole Cards to evaluate against one another. e.g.;
 
-    bash$ ./dist/build/fp/fp 123456 5000 AdJd Ac3c
+```
+bash$ stack exec fp 123456 5000 AdJd Ac3c
+```
 
 Evaluates AhJh vs Ac3c over 5,000 runs using the random seed 123456
 

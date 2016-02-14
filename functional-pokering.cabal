@@ -20,9 +20,7 @@ executable pfp
   ghc-options:
     -O2
     -threaded
-    -fprof-auto
-    -rtsopts=all
-  build-depends:       base >=4.7 && <4.8, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation, parallel
+  build-depends:       base >=4.7 && <4.9, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation, parallel
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -31,20 +29,7 @@ executable fp
   ghc-options:
     -O2
     -threaded
-    -fprof-auto
-    -rtsopts=all
-  build-depends:       base >=4.7 && <4.8, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation
-  hs-source-dirs:      src
-  default-language:    Haskell2010
-
-executable fp-profile
-  main-is:             Main.hs
-  ghc-options:
-    -O2
-    -threaded
-    -fprof-auto
-    "-with-rtsopts=-N -p -s -h -i0.1"
-  build-depends:       base >=4.7 && <4.8, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation
+  build-depends:       base >=4.7 && <4.9, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation
   hs-source-dirs:      src
   default-language:    Haskell2010
 
@@ -55,6 +40,6 @@ executable ub
     -threaded
     -fprof-auto
     -rtsopts=all
-  build-depends:       base >=4.7 && <4.8, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation
+  build-depends:       base >=4.7 && <4.9, random, random-shuffle, bytestring, rainbow, HUnit, safe, deepseq, permutation
   hs-source-dirs:      src
   default-language:    Haskell2010
