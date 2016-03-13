@@ -1,6 +1,6 @@
 # Functional Pokering
 
-https://travis-ci.org/wiggly/functional-pokering.svg?branch=master
+[![Build Status](https://travis-ci.org/wiggly/functional-pokering.svg?branch=master)](https://travis-ci.org/wiggly/functional-pokering)
 
 Collection of tools for investigating poker hands, odds, equity and other things to teach myself Haskell.
 
