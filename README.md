@@ -1,5 +1,7 @@
 # Functional Pokering
 
+https://travis-ci.org/wiggly/functional-pokering.svg?branch=master
+
 Collection of tools for investigating poker hands, odds, equity and other things to teach myself Haskell.
 
 # Usage
