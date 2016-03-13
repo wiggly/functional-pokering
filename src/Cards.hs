@@ -13,7 +13,7 @@ module Cards(
   )
        where
 
-import Data.Char (chr)
+import Data.Char (chr, isSpace)
 import Data.Maybe (Maybe, isJust, fromJust, catMaybes)
 import System.Random
 import System.Random.Shuffle
@@ -68,11 +68,14 @@ data Suit = Spades
             | Clubs
             deriving (Eq, Ord, Bounded, Enum)
 
+-- not sure why but outputting these codes always look like they are incorrectly aligned so we have added
+-- a space after each of them to stop them overlapping the next output character. this was done in show card
+-- but we really want it done here for now I think.
 instance Show Suit where
-  show Spades = "♠"
-  show Hearts = "♥"
-  show Diamonds = "♦"
-  show Clubs = "♣"
+  show Spades = "♠ "
+  show Hearts = "♥ "
+  show Diamonds = "♦ "
+  show Clubs = "♣ "
 
 -- suits
 suits :: [Suit]
@@ -91,8 +94,14 @@ data Card = Card {
   } deriving (Eq)
 
 instance Show Card where
-  show (Card {rank = r, suit = s}) = (show r) ++ (show s) ++ " "
---  show (Card {rank = r, suit = s}) = [chr ((rankUnicodeOffset r) + (suitUnicode s)), ' ']
+  show (Card {rank = r, suit = s}) = (show r) ++ (show s)
+
+instance Read Card where
+  readsPrec _ value = do
+    let stripped = dropWhile isSpace value
+        frontTwo = take 2 stripped
+        rest = drop 2 stripped
+      in maybe [] (\x -> [(x,rest)]) $ readCard $ take 2 stripped
 
 instance Ord Card where
   compare a b = (rank a `compare` rank b) `mappend` (suit a `compare` suit b)

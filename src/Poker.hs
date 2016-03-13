@@ -46,6 +46,7 @@ import Data.List
 import Data.Maybe (fromJust, isJust, catMaybes)
 import Data.Ratio
 import Data.Monoid
+import Data.Char (isSpace)
 import GHC.Exts (groupWith)
 import Control.DeepSeq
 import Data.Choose as DC
@@ -53,24 +54,35 @@ import Data.Choose as DC
 import Debug.Trace (trace)
 
 -- hole cards dealt to a player in Hold Em
-type HoleCards = (Card,Card)
+data HoleCards = HoleCards Card Card
+
+instance Read HoleCards where
+  readsPrec _ value = do
+    let stripped = dropWhile isSpace value
+        rest = drop 4 stripped
+      in maybe [] (\x -> [(x,rest)]) $ readHoleCards $ take 4 stripped
+
+instance Show HoleCards where
+  show (HoleCards x y ) = (show x) ++ (show y)
+
+
 
 -- identical rank
 pocketPair :: HoleCards -> Bool
-pocketPair (x,y) = rank x == rank y
+pocketPair (HoleCards x y) = rank x == rank y
 
 -- identical suit
 suited :: HoleCards -> Bool
-suited (x,y) = suit x == suit y
+suited (HoleCards x y) = suit x == suit y
 
 -- strongly connected, adjacent
 -- FIXME: Aces
 connected :: HoleCards -> Bool
-connected (x,y) = 1 == abs ((fromEnum (rank x)) - (fromEnum (rank y)))
+connected (HoleCards x y) = 1 == abs ((fromEnum (rank x)) - (fromEnum (rank y)))
 
 mergeHoleCards :: [Card] -> HoleCards -> [Card]
-mergeHoleCards cards hc = cards ++ holeArray
-  where holeArray = [fst hc, snd hc]
+mergeHoleCards cards (HoleCards x y) = cards ++ holeArray
+  where holeArray = [x, y]
 
 data PokerRank = StraightFlush
                | FourOfAKind
@@ -115,7 +127,7 @@ bestPokerHand = fromJust . constructPokerHand
 
 -- take a board to choose from, a hand and return the best rank made by that hand on the board
 pokerRank :: [Card] -> HoleCards -> PokerRank
-pokerRank board hand = let cards = (fst hand) : (snd hand) : board
+pokerRank board (HoleCards x y) = let cards = x : y : board
   in pokerHandRank $ bestPokerHand cards
 
 -- TODO: possibly broken
@@ -137,7 +149,7 @@ generateHands :: Deck -> Int -> ([HoleCards],Deck)
 generateHands deck count = (hands, remainder)
   where hands = map createHand (take count $ chunkList 2 deck)
         remainder = drop (count * 2) deck
-        createHand (x:y:[]) = (x, y)
+        createHand (x:y:[]) = (HoleCards x y)
 
 countMultipleRanks :: Int -> [Card] -> Int
 countMultipleRanks n hand = length multiples
@@ -177,7 +189,7 @@ groupBySuits xs = groupWith (\x -> suit x) xs
 readHoleCards :: String -> Maybe HoleCards
 readHoleCards str
   | length str /= 4 = Nothing
-  | isJust c1 && isJust c2 = Just (fromJust c1, fromJust c2)
+  | isJust c1 && isJust c2 = Just (HoleCards (fromJust c1) (fromJust c2))
   | otherwise = Nothing
     where c1 = readCard $ take 2 str
           c2 = readCard $ drop 2 str
@@ -401,9 +413,9 @@ constructStraightFlushHand suited = do
   return (PokerHand StraightFlush a b c d e)
 
 -- Generate all possible unique HoldEm community boards from a deck provided
-generateBoards :: [Card] -> [[Card]]
-generateBoards deck = let initial = Just $ DC.choose (length deck) 5
-                      in unfoldr go initial
+generateBoards :: Int -> [Card] -> [[Card]]
+generateBoards boardLength deck = let initial = Just $ DC.choose (length deck) boardLength
+                             in unfoldr go initial
   where go nck
           | isJust nck = Just (board deck (DC.elems (fromJust nck)), DC.next (fromJust nck))
           | otherwise = Nothing

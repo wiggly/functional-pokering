@@ -28,7 +28,7 @@ chunkBoard board = (chunk "Board: ") : cards
   where cards = chunkCards " " board
 
 chunkHoleCards :: HoleCards -> [Chunk String]
-chunkHoleCards h@(c1,c2) = [ (chunk "Hole Cards: "),
+chunkHoleCards h@(HoleCards c1 c2) = [ (chunk "Hole Cards: "),
                              sep,
                              (chunkCard c1),
                              sep,
@@ -90,7 +90,7 @@ showBoard :: [Card] -> String
 showBoard xs = "Board: " ++ (intercalate " " $ map show xs)
 
 showHand :: HoleCards -> String
-showHand x = "Hand: " ++ (show (fst x)) ++ " " ++ (show (snd x)) ++ (handShape x)
+showHand h@(HoleCards x y) = "Hand: " ++ (show x) ++ " " ++ (show y) ++ (handShape h)
 
 showRankedHand :: (HoleCards,PokerRank) -> String
 showRankedHand (hand,rank) = (showHand hand) ++ " - rank: " ++ (show rank)

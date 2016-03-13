@@ -26,7 +26,7 @@ rankHands (board,hands) = (board,ranked)
 -- the combinations of possible hands given by the numbers min and max.
 -- These are zero-indexed indices of the combination to be tested
 calcEquity :: Int -> Int -> [Card] -> [HoleCards] -> [ShowdownTally]
-calcEquity min max deck hands = let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+calcEquity min max deck hands = let usedCards = foldr (\(HoleCards x y) acc -> x:y:acc ) [] hands
                                     deckx = standardDeck \\ usedCards
                                     generator = generateBoard deck
                                     boards = [ generator i | i <- [min..max] ]
@@ -45,7 +45,7 @@ parCalcEquity samples deck hands = let cores = 4
 evaluateHands :: StdGen -> Int -> [HoleCards] -> IO ()
 evaluateHands rnd samples hands = do
   mapM_ putHandLn $ hands
-  let usedCards = foldr (\x acc -> (fst x):(snd x):acc ) [] hands
+  let usedCards = foldr (\(HoleCards x y) acc -> x:y:acc ) [] hands
       deck = standardDeck \\ usedCards
       shuffled = shuffleDeck rnd deck
       equity = parCalcEquity samples shuffled hands
@@ -74,4 +74,5 @@ cmdLineEvalMain = do
     then evaluateHands rnd samples $ catMaybes hands
     else putStrLn $ "cannot parse hands: " ++ (unwords strCards)
 
+-- TODO: remove this file altogether, make parallelism an option flag
 main = cmdLineEvalMain

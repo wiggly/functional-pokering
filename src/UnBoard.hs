@@ -25,5 +25,5 @@ main = do
   let size = read sizeStr :: Int
       deck = take size standardDeck
   if version == "slow"
-  then showEachBoardLengthPlus $ generateBoards deck
-  else showEachBoardLength $ generateBoards deck
+  then showEachBoardLengthPlus $ generateBoards 5 deck
+  else showEachBoardLength $ generateBoards 5 deck
