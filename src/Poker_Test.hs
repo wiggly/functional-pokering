@@ -1,6 +1,6 @@
 -- -*- mode: haskell; -*-
 
-module Poker_Test () where
+module Main (main) where
 
 import Poker (
   HoleCards(..),
@@ -61,7 +61,7 @@ bestPokerHandTests = TestList [
   bestHandTestCase "6d Kd 9c Ad 8d 3d Qd" $ testHand' Flush "Ad Kd Qd 8d 6d",
 
   bestHandTestCase "7s Ks 4s 2s 3s Qd Kd" $ testHand' Flush "Ks 7s 4s 3s 2s",
-  
+
   -- this doesn't work yet but since we only have 7-card tests that is okay
   -- bestHandTestCase "7s As 4s 2s 3s Qd Kd Ad 2d 3d" $ testHand' Flush "Ad Kd Qd 3d 2d",
 
@@ -78,7 +78,7 @@ bestPokerHandTests = TestList [
   bestHandTestCase "Jd Qc Ks 9s Th 4d 3c" $ testHand' Straight "Ks Qc Jd Th 9s",
   bestHandTestCase "Th Jd Ah 4d Qc Ks 3c" $ testHand' Straight "Ah Ks Qc Jd Th",
 
-  
+
   -- TODO: add code to handle Low Ace
   bestHandTestCase "6c 5h 4c 3s 2s Kd As" $ testHand' Straight "6s 5s 4s 3s 2s",
 
@@ -91,7 +91,7 @@ bestPokerHandTests = TestList [
   bestHandTestCase "6d 8s 9c Tc 8d 3c Qs" $ testHand' Pair "8s 8d Qs Tc 9c",
 
   bestHandTestCase "8c 4s 3d 7d As 2h Jh" $ testHand' HighCard "As Jh 8c 7d 4s",
-  
+
   bestHandTestCase "4d 5d 6c 7s 8d 9d Td" $ testHand' Flush "Td 9d 8d 5d 4d"
   ]
 
