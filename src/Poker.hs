@@ -291,7 +291,7 @@ groupByRuns cards = groupByBreak 0 breaks uniqueRanks
 
 -- convert cards to ranks and find out where discontinuities exist
 -- this shows us where to split the cards at
-runBreaks :: (Eq a, Num a, Enum a) => [Card] -> [Int]
+runBreaks :: [Card] -> [Int]
 runBreaks [] = []
 runBreaks cards = indices
   where xs = map (fromEnum . rank) cards
